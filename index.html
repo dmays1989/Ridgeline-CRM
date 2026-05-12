@@ -841,57 +841,132 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
 <!-- Proposal Setup -->
 <div class="modal-overlay hidden" id="modal-proposal-setup">
   <div style="flex:1" onclick="closeModal('proposal-setup')"></div>
-  <div class="modal-sheet" style="max-height:90vh">
+  <div class="modal-sheet" style="max-height:92vh">
     <div class="modal-drag"></div>
     <div class="modal-header"><h3>📄 Build Proposal</h3></div>
-    <div class="modal-body" style="overflow-y:auto;max-height:calc(90vh - 130px)">
+    <div class="modal-body" style="overflow-y:auto;max-height:calc(92vh - 130px)">
+      <!-- Mode toggle -->
+      <div style="display:flex;margin-bottom:14px;border-radius:8px;overflow:hidden;border:1.5px solid var(--border2)">
+        <div id="propModeSingle" onclick="setProposalMode('single')" style="flex:1;padding:10px;text-align:center;cursor:pointer;font-size:.78rem;font-weight:700;letter-spacing:.5px;transition:all .15s;background:var(--accent);color:#fff">Single Price</div>
+        <div id="propModeTiered" onclick="setProposalMode('tiered')" style="flex:1;padding:10px;text-align:center;cursor:pointer;font-size:.78rem;font-weight:700;letter-spacing:.5px;transition:all .15s;background:var(--bg);color:var(--muted)">Good / Better / Best</div>
+      </div>
+      <!-- Takeoff total (always shown) -->
       <div style="background:rgba(240,101,10,.1);border:1px solid rgba(240,101,10,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
         <span style="color:var(--muted);font-size:.82rem">Takeoff Total</span>
         <span style="font-family:var(--head);font-size:1.4rem;font-weight:700;color:var(--accent)" id="propTotalSqDisplay">— sq</span>
       </div>
-      <div class="field">
-        <label>Product / Description</label>
-        <input class="inp" id="propProductDesc" type="text" placeholder="e.g. GAF Timberline HDZ – Charcoal"/>
-      </div>
-      <div class="field">
-        <label>Material Cost ($/sq) — contractor only</label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="color:var(--muted);font-size:1rem">$</span>
-          <input class="inp" id="propMaterialPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotal()" style="flex:1"/>
-          <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+
+      <!-- SINGLE PRICE FIELDS -->
+      <div id="propSingleFields">
+        <div class="field">
+          <label>Product / Description</label>
+          <input class="inp" id="propProductDesc" type="text" placeholder="e.g. GAF Timberline HDZ – Charcoal"/>
+        </div>
+        <div class="field">
+          <label>Material Cost ($/sq) — contractor only</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--muted)">$</span>
+            <input class="inp" id="propMaterialPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
+            <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Labor ($/sq)</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="color:var(--muted)">$</span>
+            <input class="inp" id="propLaborPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
+            <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Additional Charges (flat)</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="color:var(--muted)">$</span>
+            <input class="inp" id="propAdditional" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
+          </div>
+          <input class="inp" id="propAdditionalDesc" type="text" placeholder="Description (e.g. Chimney flashing)" style="font-size:.85rem"/>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0"><span>Material</span><span id="propMatCostDisplay">—</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0;margin-bottom:8px"><span>Labor</span><span id="propLabCostDisplay">—</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px">
+            <span style="font-weight:700">Grand Total</span>
+            <span style="font-family:var(--head);font-size:1.5rem;font-weight:700;color:var(--green)" id="propGrandTotalDisplay">$0.00</span>
+          </div>
         </div>
       </div>
-      <div class="field">
-        <label>Labor ($/sq)</label>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="color:var(--muted);font-size:1rem">$</span>
-          <input class="inp" id="propLaborPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotal()" style="flex:1"/>
-          <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+
+      <!-- TIERED FIELDS -->
+      <div id="propTieredFields" style="display:none">
+        <!-- GOOD -->
+        <div style="border:1.5px solid var(--border2);border-radius:9px;margin-bottom:10px;overflow:hidden">
+          <div style="background:var(--card);padding:9px 12px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-family:var(--head);font-size:.88rem;font-weight:700;letter-spacing:1px;color:var(--muted)">GOOD</span>
+            <span style="font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--blue)" id="propTierTotal_good">—</span>
+          </div>
+          <div style="padding:10px 12px">
+            <input class="inp" id="propTier_good_productDesc" type="text" placeholder="Product description" style="font-size:.85rem;margin-bottom:8px"/>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Mat $/sq</div>
+                <input class="inp" id="propTier_good_mat" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+              <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Labor $/sq</div>
+                <input class="inp" id="propTier_good_lab" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="color:var(--muted);font-size:.78rem">+ $</span>
+              <input class="inp" id="propTier_good_add" type="number" min="0" step="0.01" placeholder="Additional (flat)" oninput="updatePropTotals()" style="flex:1;padding:8px 10px;font-size:.82rem"/>
+            </div>
+          </div>
+        </div>
+        <!-- BETTER -->
+        <div style="border:1.5px solid var(--accent);border-radius:9px;margin-bottom:10px;overflow:hidden">
+          <div style="background:rgba(240,101,10,.12);padding:9px 12px;display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-family:var(--head);font-size:.88rem;font-weight:700;letter-spacing:1px;color:var(--accent)">BETTER</span>
+              <span style="font-size:.62rem;color:var(--accent);opacity:.85">⭐ Most Popular</span>
+            </div>
+            <span style="font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--accent)" id="propTierTotal_better">—</span>
+          </div>
+          <div style="padding:10px 12px">
+            <input class="inp" id="propTier_better_productDesc" type="text" placeholder="Product description" style="font-size:.85rem;margin-bottom:8px"/>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Mat $/sq</div>
+                <input class="inp" id="propTier_better_mat" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+              <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Labor $/sq</div>
+                <input class="inp" id="propTier_better_lab" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="color:var(--muted);font-size:.78rem">+ $</span>
+              <input class="inp" id="propTier_better_add" type="number" min="0" step="0.01" placeholder="Additional (flat)" oninput="updatePropTotals()" style="flex:1;padding:8px 10px;font-size:.82rem"/>
+            </div>
+          </div>
+        </div>
+        <!-- BEST -->
+        <div style="border:1.5px solid var(--green);border-radius:9px;margin-bottom:10px;overflow:hidden">
+          <div style="background:rgba(29,185,84,.1);padding:9px 12px;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-family:var(--head);font-size:.88rem;font-weight:700;letter-spacing:1px;color:var(--green)">BEST</span>
+            <span style="font-family:var(--head);font-size:1.1rem;font-weight:700;color:var(--green)" id="propTierTotal_best">—</span>
+          </div>
+          <div style="padding:10px 12px">
+            <input class="inp" id="propTier_best_productDesc" type="text" placeholder="Product description" style="font-size:.85rem;margin-bottom:8px"/>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Mat $/sq</div>
+                <input class="inp" id="propTier_best_mat" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+              <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Labor $/sq</div>
+                <input class="inp" id="propTier_best_lab" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="color:var(--muted);font-size:.78rem">+ $</span>
+              <input class="inp" id="propTier_best_add" type="number" min="0" step="0.01" placeholder="Additional (flat)" oninput="updatePropTotals()" style="flex:1;padding:8px 10px;font-size:.82rem"/>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="field">
-        <label>Additional Charges (flat amount)</label>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="color:var(--muted);font-size:1rem">$</span>
-          <input class="inp" id="propAdditional" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotal()" style="flex:1"/>
-        </div>
-        <input class="inp" id="propAdditionalDesc" type="text" placeholder="Description (e.g. Chimney flashing, skylight)" style="font-size:.85rem"/>
-      </div>
+
+      <!-- Scope of work (shared for both modes) -->
       <div class="field">
         <label>Scope of Work</label>
         <textarea class="inp" id="propScopeNotes" rows="3" placeholder="Describe the work for the customer…"></textarea>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-top:4px">
-        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0">
-          <span>Material</span><span id="propMatCostDisplay">—</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0;margin-bottom:8px">
-          <span>Labor</span><span id="propLabCostDisplay">—</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px">
-          <span style="font-weight:700">Grand Total</span>
-          <span style="font-family:var(--head);font-size:1.5rem;font-weight:700;color:var(--green)" id="propGrandTotalDisplay">$0.00</span>
-        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2329,6 +2404,8 @@ function deleteContactLogEntry(entryId){
 }
 
 // ══ PROPOSAL GENERATOR ══
+let _propMode='single';
+
 function detectJobProduct(j){
   const sections=j.sections||[];
   const types={};
@@ -2344,8 +2421,7 @@ function detectJobProduct(j){
   }
   const metalLabel={ag:'AG Panel',pbr:'PBR Panel',ss16:'Standing Seam 16"',ss17:'Standing Seam 17"'};
   if(metalLabel[type]){
-    const color=j.metalColor||'';
-    const gauge=j.gauge?j.gauge+' ga':'';
+    const color=j.metalColor||'';const gauge=j.gauge?j.gauge+' ga':'';
     return [metalLabel[type],'Metal Roof',color,gauge?'('+gauge+')':''].filter(Boolean).join(' ');
   }
   if(type==='tpo')return 'TPO Flat Roof System';
@@ -2354,20 +2430,30 @@ function detectJobProduct(j){
 }
 
 function detectJobMaterialPrice(j){
-  const sections=j.sections||[];
-  const types={};
+  const sections=j.sections||[];const types={};
   sections.forEach(s=>{const t=secType(s);types[t]=(types[t]||0)+1;});
   const primary=Object.entries(types).sort((a,b)=>b[1]-a[1])[0];
   if(!primary)return 0;
   const type=primary[0];
   if(type==='shingle'){
     const brandToId={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage'};
-    const prodId=brandToId[j.shingleBrand]||'gaf-hdz';
-    return +(_pricing['prod_'+prodId])||0;
+    return +(_pricing['prod_'+(brandToId[j.shingleBrand]||'gaf-hdz')])||0;
   }
   const typeToId={ag:'metal-ag',pbr:'metal-pbr',ss16:'metal-ss16',ss17:'metal-ss17',tpo:'flat-tpo-white',pvc:'flat-pvc-white'};
   const prodId=typeToId[type];
   return prodId?(+(_pricing['prod_'+prodId])||0):0;
+}
+
+function setProposalMode(mode){
+  _propMode=mode;
+  const isTiered=mode==='tiered';
+  document.getElementById('propSingleFields').style.display=isTiered?'none':'block';
+  document.getElementById('propTieredFields').style.display=isTiered?'block':'none';
+  const ms=document.getElementById('propModeSingle');
+  const mt=document.getElementById('propModeTiered');
+  ms.style.background=isTiered?'var(--bg)':'var(--accent)';ms.style.color=isTiered?'var(--muted)':'#fff';
+  mt.style.background=isTiered?'var(--accent)':'var(--bg)';mt.style.color=isTiered?'#fff':'var(--muted)';
+  updatePropTotals();
 }
 
 function openProposalSetup(){
@@ -2375,159 +2461,241 @@ function openProposalSetup(){
   const t=calcJob(j);
   const totalSq=Math.round(t.sf/100*100)/100;
   const existing=j.proposal||{};
-  document.getElementById('propTotalSqDisplay').textContent=totalSq+' sq';
-  document.getElementById('propProductDesc').value=existing.productDesc!==undefined?existing.productDesc:detectJobProduct(j);
-  document.getElementById('propMaterialPerSq').value=existing.materialPerSq!==undefined?existing.materialPerSq:(detectJobMaterialPrice(j)||'');
-  document.getElementById('propLaborPerSq').value=existing.laborPerSq!==undefined?existing.laborPerSq:((_companyProfile&&_companyProfile.laborMode==='per_sq'&&_companyProfile.laborRate)||'');
-  document.getElementById('propAdditional').value=existing.additionalCharges||'';
-  document.getElementById('propAdditionalDesc').value=existing.additionalDesc||'';
-  document.getElementById('propScopeNotes').value=existing.scopeNotes||'';
   window._propTotalSq=totalSq;
-  updatePropTotal();
+  document.getElementById('propTotalSqDisplay').textContent=totalSq+' sq';
+  const mode=existing.mode||'single';
+  setProposalMode(mode);
+  document.getElementById('propScopeNotes').value=existing.scopeNotes||'';
+  const defaultDesc=detectJobProduct(j);
+  const defaultMat=detectJobMaterialPrice(j)||'';
+  const defaultLab=(_companyProfile&&_companyProfile.laborMode==='per_sq'&&_companyProfile.laborRate)||'';
+  if(mode==='single'){
+    document.getElementById('propProductDesc').value=existing.productDesc!==undefined?existing.productDesc:defaultDesc;
+    document.getElementById('propMaterialPerSq').value=existing.materialPerSq!==undefined?existing.materialPerSq:defaultMat;
+    document.getElementById('propLaborPerSq').value=existing.laborPerSq!==undefined?existing.laborPerSq:defaultLab;
+    document.getElementById('propAdditional').value=existing.additionalCharges||'';
+    document.getElementById('propAdditionalDesc').value=existing.additionalDesc||'';
+  } else {
+    const tiers=existing.tiers||{};
+    ['good','better','best'].forEach(level=>{
+      const tier=tiers[level]||{};
+      document.getElementById('propTier_'+level+'_productDesc').value=tier.productDesc!==undefined?tier.productDesc:(level==='better'?defaultDesc:'');
+      document.getElementById('propTier_'+level+'_mat').value=tier.materialPerSq!==undefined?tier.materialPerSq:(level==='better'?defaultMat:'');
+      document.getElementById('propTier_'+level+'_lab').value=tier.laborPerSq!==undefined?tier.laborPerSq:(level==='better'?defaultLab:'');
+      document.getElementById('propTier_'+level+'_add').value=tier.additionalCharges||'';
+    });
+  }
+  updatePropTotals();
   openModal('proposal-setup');
 }
 
-function updatePropTotal(){
+function updatePropTotals(){
   const sq=window._propTotalSq||0;
-  const mat=+document.getElementById('propMaterialPerSq').value||0;
-  const lab=+document.getElementById('propLaborPerSq').value||0;
-  const add=+document.getElementById('propAdditional').value||0;
-  const matCost=mat*sq;const labCost=lab*sq;const total=matCost+labCost+add;
   const fmt=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('propMatCostDisplay').textContent=mat?fmt(matCost):'—';
-  document.getElementById('propLabCostDisplay').textContent=lab?fmt(labCost):'—';
-  document.getElementById('propGrandTotalDisplay').textContent=fmt(total);
+  if(_propMode==='single'){
+    const mat=+document.getElementById('propMaterialPerSq').value||0;
+    const lab=+document.getElementById('propLaborPerSq').value||0;
+    const add=+document.getElementById('propAdditional').value||0;
+    const matCost=mat*sq;const labCost=lab*sq;const total=matCost+labCost+add;
+    document.getElementById('propMatCostDisplay').textContent=mat?fmt(matCost):'—';
+    document.getElementById('propLabCostDisplay').textContent=lab?fmt(labCost):'—';
+    document.getElementById('propGrandTotalDisplay').textContent=fmt(total);
+  } else {
+    ['good','better','best'].forEach(level=>{
+      const mat=+document.getElementById('propTier_'+level+'_mat').value||0;
+      const lab=+document.getElementById('propTier_'+level+'_lab').value||0;
+      const add=+document.getElementById('propTier_'+level+'_add').value||0;
+      const total=mat*sq+lab*sq+add;
+      document.getElementById('propTierTotal_'+level).textContent=(mat||lab||add)?fmt(total):'—';
+    });
+  }
 }
+function updatePropTotal(){updatePropTotals();}// alias
 
 function saveProposalSetup(){
   const j=CJ();if(!j)return;
   const sq=window._propTotalSq||0;
-  const mat=+document.getElementById('propMaterialPerSq').value||0;
-  const lab=+document.getElementById('propLaborPerSq').value||0;
-  const add=+document.getElementById('propAdditional').value||0;
-  const total=mat*sq+lab*sq+add;
-  j.proposal={
-    productDesc:document.getElementById('propProductDesc').value.trim(),
-    materialPerSq:mat,laborPerSq:lab,
-    additionalCharges:add,
-    additionalDesc:document.getElementById('propAdditionalDesc').value.trim(),
+  const rnd=n=>Math.round(n*100)/100;
+  let proposal={
+    mode:_propMode,
     scopeNotes:document.getElementById('propScopeNotes').value.trim(),
-    totalSq:sq,grandTotal:total,
+    totalSq:sq,
     status:(j.proposal&&j.proposal.status)||'draft',
     createdAt:(j.proposal&&j.proposal.createdAt)||new Date().toISOString(),
     updatedAt:new Date().toISOString()
   };
+  if(_propMode==='single'){
+    const mat=+document.getElementById('propMaterialPerSq').value||0;
+    const lab=+document.getElementById('propLaborPerSq').value||0;
+    const add=+document.getElementById('propAdditional').value||0;
+    Object.assign(proposal,{
+      productDesc:document.getElementById('propProductDesc').value.trim(),
+      materialPerSq:mat,laborPerSq:lab,
+      additionalCharges:add,
+      additionalDesc:document.getElementById('propAdditionalDesc').value.trim(),
+      grandTotal:rnd(mat*sq+lab*sq+add)
+    });
+  } else {
+    const tiers={};
+    ['good','better','best'].forEach(level=>{
+      const mat=+document.getElementById('propTier_'+level+'_mat').value||0;
+      const lab=+document.getElementById('propTier_'+level+'_lab').value||0;
+      const add=+document.getElementById('propTier_'+level+'_add').value||0;
+      tiers[level]={
+        productDesc:document.getElementById('propTier_'+level+'_productDesc').value.trim(),
+        materialPerSq:mat,laborPerSq:lab,
+        additionalCharges:add,
+        grandTotal:rnd(mat*sq+lab*sq+add)
+      };
+    });
+    proposal.tiers=tiers;
+  }
+  j.proposal=proposal;
   save(JOBS_KEY,jobs);
   if(fbUser)saveJobToFirestore(j).catch(e=>console.error(e));
   closeModal('proposal-setup');
   showProposalScreen();
 }
 
-function showProposalScreen(){
-  showScreen('proposal');
-  renderProposalScreen();
-}
+function showProposalScreen(){showScreen('proposal');renderProposalScreen();}
 
 function renderProposalScreen(){
   const j=CJ();
   const body=document.getElementById('proposalBody');
-  if(!j||!j.proposal){body.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:.9rem">No proposal yet.<br><br><button class="btn btn-accent" style="width:auto;padding:12px 24px" onclick="openProposalSetup()">📄 Build Proposal</button></div>';return;}
+  if(!j||!j.proposal){
+    body.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:.9rem">No proposal yet.<br><br><button class="btn btn-accent" style="width:auto;padding:12px 24px" onclick="openProposalSetup()">📄 Build Proposal</button></div>';
+    return;
+  }
   const p=j.proposal;
   const cp=_companyProfile||{};
   const brand=cp.brandColor||'#f0650a';
   const fmt=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const matCost=p.materialPerSq*p.totalSq;
-  const labCost=p.laborPerSq*p.totalSq;
   const now=new Date();
   const dateStr=now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const validity=cp.validity||30;
   const validUntil=new Date(now.getTime()+validity*24*60*60*1000).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
   const logoHtml=cp.logo?`<img src="${cp.logo}" style="height:52px;width:auto;object-fit:contain;border-radius:4px;background:rgba(255,255,255,.15);padding:3px"/>`:`<div style="width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.5rem">🏠</div>`;
 
-  // Contractor cost summary (private)
-  const contractorSection=`
-    <div style="background:rgba(29,185,84,.06);border:1px solid rgba(29,185,84,.25);border-radius:10px;padding:13px;margin-bottom:14px">
+  // ── Contractor cost summary ──
+  let contractorSection='';
+  if(p.mode==='tiered'){
+    const tiers=p.tiers||{};
+    const tierDefs=[{id:'good',label:'GOOD',color:'var(--blue)'},{id:'better',label:'BETTER',color:'var(--accent)'},{id:'best',label:'BEST',color:'var(--green)'}];
+    const tierCols=tierDefs.map(td=>{
+      const t=tiers[td.id]||{};
+      const total=t.grandTotal||0;
+      const matC=(t.materialPerSq||0)*(p.totalSq||0);
+      const labC=(t.laborPerSq||0)*(p.totalSq||0);
+      return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;flex:1;min-width:0">
+        <div style="font-family:var(--head);font-size:.75rem;font-weight:700;color:${td.color};margin-bottom:6px">${td.label}</div>
+        <div style="font-size:.72rem;color:var(--muted)">Mat: ${fmt(matC)}</div>
+        <div style="font-size:.72rem;color:var(--muted)">Labor: ${fmt(labC)}</div>
+        ${t.additionalCharges?`<div style="font-size:.72rem;color:var(--muted)">Add'l: ${fmt(t.additionalCharges)}</div>`:''}
+        <div style="font-family:var(--head);font-size:1.15rem;font-weight:700;color:${td.color};border-top:1px solid var(--border);margin-top:5px;padding-top:5px">${fmt(total)}</div>
+      </div>`;
+    }).join('');
+    contractorSection=`<div style="background:rgba(29,185,84,.06);border:1px solid rgba(29,185,84,.25);border-radius:10px;padding:13px;margin-bottom:14px">
+      <div style="font-size:.6rem;color:var(--green);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:8px">🔒 Your Numbers — ${p.totalSq} sq — Not Visible to Customer</div>
+      <div style="display:flex;gap:7px">${tierCols}</div>
+    </div>`;
+  } else {
+    const matCost=(p.materialPerSq||0)*(p.totalSq||0);
+    const labCost=(p.laborPerSq||0)*(p.totalSq||0);
+    contractorSection=`<div style="background:rgba(29,185,84,.06);border:1px solid rgba(29,185,84,.25);border-radius:10px;padding:13px;margin-bottom:14px">
       <div style="font-size:.6rem;color:var(--green);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:10px">🔒 Your Numbers — Not Visible to Customer</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px">
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center">
-          <div style="font-family:var(--head);font-size:1.3rem;font-weight:700">${p.totalSq}</div>
-          <div style="font-size:.62rem;color:var(--muted)">Squares</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center">
-          <div style="font-family:var(--head);font-size:1.3rem;font-weight:700">${fmt(p.materialPerSq)}</div>
-          <div style="font-size:.62rem;color:var(--muted)">Mat / sq</div>
-        </div>
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center">
-          <div style="font-family:var(--head);font-size:1.3rem;font-weight:700">${fmt(p.laborPerSq)}</div>
-          <div style="font-size:.62rem;color:var(--muted)">Labor / sq</div>
-        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center"><div style="font-family:var(--head);font-size:1.3rem;font-weight:700">${p.totalSq}</div><div style="font-size:.62rem;color:var(--muted)">Squares</div></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center"><div style="font-family:var(--head);font-size:1.3rem;font-weight:700">${fmt(p.materialPerSq||0)}</div><div style="font-size:.62rem;color:var(--muted)">Mat / sq</div></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center"><div style="font-family:var(--head);font-size:1.3rem;font-weight:700">${fmt(p.laborPerSq||0)}</div><div style="font-size:.62rem;color:var(--muted)">Labor / sq</div></div>
       </div>
-      <div style="font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;padding:3px 0">
-        <span>Material cost</span><span>${fmt(matCost)}</span>
-      </div>
-      <div style="font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;padding:3px 0">
-        <span>Labor cost</span><span>${fmt(labCost)}</span>
-      </div>
+      <div style="font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;padding:3px 0"><span>Material cost</span><span>${fmt(matCost)}</span></div>
+      <div style="font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;padding:3px 0"><span>Labor cost</span><span>${fmt(labCost)}</span></div>
       ${p.additionalCharges?`<div style="font-size:.8rem;color:var(--muted);display:flex;justify-content:space-between;padding:3px 0"><span>${p.additionalDesc||'Additional'}</span><span>${fmt(p.additionalCharges)}</span></div>`:''}
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:.9rem;font-weight:700;color:var(--green);border-top:1px solid rgba(29,185,84,.2);margin-top:6px;padding-top:7px">
-        <span>Grand Total</span><span>${fmt(p.grandTotal)}</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:.9rem;font-weight:700;color:var(--green);border-top:1px solid rgba(29,185,84,.2);margin-top:6px;padding-top:7px"><span>Grand Total</span><span>${fmt(p.grandTotal||0)}</span></div>
+    </div>`;
+  }
+
+  // ── Shared proposal header (both modes) ──
+  const proposalHeader=`
+    <div style="background:${brand};padding:18px;display:flex;align-items:center;gap:13px">
+      ${logoHtml}
+      <div style="flex:1">
+        <div style="color:white;font-family:var(--head);font-size:1.25rem;font-weight:700;letter-spacing:.5px">${cp.name||'Your Company'}</div>
+        ${cp.tagline?`<div style="color:rgba(255,255,255,.82);font-size:.72rem;margin-top:2px">${cp.tagline}</div>`:''}
+      </div>
+    </div>
+    ${(cp.phone||cp.email||cp.website)?`<div style="background:#f6f6f6;padding:9px 16px;display:flex;flex-wrap:wrap;gap:10px;border-bottom:1px solid #e8e8e8">${cp.phone?`<span style="font-size:.76rem;color:#555">📞 ${cp.phone}</span>`:''}${cp.email?`<span style="font-size:.76rem;color:#555">✉️ ${cp.email}</span>`:''}${cp.website?`<span style="font-size:.76rem;color:#555">🌐 ${cp.website}</span>`:''}
+    </div>`:''}
+    <div style="padding:18px 16px 14px;border-bottom:1px solid #ebebeb">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700">PROPOSAL FOR</div>
+          <div style="font-size:1.05rem;font-weight:700;color:#1a1a1a;margin-top:3px">${j.name}</div>
+          ${j.address?`<div style="font-size:.8rem;color:#666;margin-top:2px;white-space:pre-line">${j.address}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:#aaa">DATE</div>
+          <div style="font-size:.8rem;color:#333;font-weight:600">${dateStr}</div>
+          <div style="font-size:.62rem;color:#aaa;margin-top:5px">VALID UNTIL</div>
+          <div style="font-size:.78rem;color:#555">${validUntil}</div>
+        </div>
       </div>
     </div>`;
 
-  // Customer-facing proposal
+  // ── Pricing section: single vs tiered ──
+  let pricingSection='';
+  if(p.mode==='tiered'){
+    const tiers=p.tiers||{};
+    const tierCards=[
+      {id:'good', label:'GOOD', border:'#ddd', bg:'#fff', badgeBg:'#888', badgeColor:'#fff', priceColor:'#555', popular:false},
+      {id:'better', label:'BETTER', border:brand, bg:brand+'10', badgeBg:brand, badgeColor:'#fff', priceColor:brand, popular:true},
+      {id:'best', label:'BEST', border:'#1db954', bg:'rgba(29,185,84,.06)', badgeBg:'#1db954', badgeColor:'#fff', priceColor:'#1db954', popular:false}
+    ].map(tc=>{
+      const t=tiers[tc.id]||{};
+      const price=t.grandTotal||0;
+      return`<div style="border:2px solid ${tc.border};border-radius:10px;padding:14px 12px;margin-bottom:8px;position:relative;background:${tc.bg}">
+        ${tc.popular?`<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:${tc.badgeBg};color:${tc.badgeColor};padding:3px 12px;border-radius:20px;font-size:.62rem;font-weight:700;white-space:nowrap">⭐ MOST POPULAR</div>`:''}
+        <div style="display:inline-block;padding:3px 10px;border-radius:20px;background:${tc.badgeBg};font-size:.63rem;font-weight:700;color:${tc.badgeColor};margin-bottom:${tc.popular?'14px':'8px'}">${tc.label}</div>
+        ${t.productDesc?`<div style="font-size:.88rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">${t.productDesc}</div>`:''}
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:800;color:${tc.priceColor};line-height:1">${fmt(price)}</div>
+      </div>`;
+    }).join('');
+    pricingSection=`<div style="padding:16px;border-bottom:1px solid #ebebeb">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:14px">CHOOSE YOUR OPTION</div>
+      ${tiers.good&&tiers.good.productDesc?``:``}${tierCards}
+    </div>`;
+  } else {
+    pricingSection=`<div style="padding:18px 16px;background:linear-gradient(135deg,${brand}18,#fff);border-bottom:1px solid #ebebeb">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700">TOTAL INVESTMENT</div>
+          <div style="font-size:.78rem;color:#888;margin-top:2px">Materials &amp; labor included</div>
+        </div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:800;color:${brand};line-height:1">${fmt(p.grandTotal||0)}</div>
+      </div>
+    </div>`;
+  }
+
+  // ── Scope, terms, footer ──
+  const scopeSection=p.scopeNotes||p.productDesc?`<div style="padding:16px;border-bottom:1px solid #ebebeb">
+    <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">SCOPE OF WORK</div>
+    ${p.productDesc&&p.mode!=='tiered'?`<div style="font-size:.95rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">${p.productDesc}</div>`:''}
+    ${p.scopeNotes?`<div style="font-size:.86rem;color:#444;line-height:1.65;white-space:pre-wrap">${p.scopeNotes.replace(/</g,'&lt;')}</div>`:''}
+    ${p.additionalCharges&&p.additionalDesc&&p.mode!=='tiered'?`<div style="margin-top:7px;font-size:.84rem;color:#444">• ${p.additionalDesc}</div>`:''}
+  </div>`:'';
+  const termsSection=cp.payTerms?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb"><div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:4px">PAYMENT TERMS</div><div style="font-size:.83rem;color:#444">${cp.payTerms}</div></div>`:'';
+  const notesSection=cp.notes?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb;background:#fafafa"><div style="font-size:.74rem;color:#888;line-height:1.6">${cp.notes}</div></div>`:'';
+  const footerSection=`<div style="padding:10px 16px;display:flex;justify-content:space-between;align-items:center;background:#f5f5f5">${cp.license?`<span style="font-size:.68rem;color:#aaa">Lic: ${cp.license}</span>`:'<span></span>'}<span style="font-size:.65rem;color:#ccc">Powered by Ridgeline</span></div>`;
+
   const customerView=`
     <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:8px;text-align:center">▼ Customer View</div>
     <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.35)">
-      <div style="background:${brand};padding:18px;display:flex;align-items:center;gap:13px">
-        ${logoHtml}
-        <div style="flex:1">
-          <div style="color:white;font-family:var(--head);font-size:1.25rem;font-weight:700;letter-spacing:.5px">${cp.name||'Your Company'}</div>
-          ${cp.tagline?`<div style="color:rgba(255,255,255,.82);font-size:.72rem;margin-top:2px">${cp.tagline}</div>`:''}
-        </div>
-      </div>
-      ${(cp.phone||cp.email||cp.website)?`<div style="background:#f6f6f6;padding:9px 16px;display:flex;flex-wrap:wrap;gap:10px;border-bottom:1px solid #e8e8e8">${cp.phone?`<span style="font-size:.76rem;color:#555">📞 ${cp.phone}</span>`:''}${cp.email?`<span style="font-size:.76rem;color:#555">✉️ ${cp.email}</span>`:''}${cp.website?`<span style="font-size:.76rem;color:#555">🌐 ${cp.website}</span>`:''}
-      </div>`:''}
-      <div style="padding:18px 16px 14px;border-bottom:1px solid #ebebeb">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
-          <div>
-            <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700">PROPOSAL FOR</div>
-            <div style="font-size:1.05rem;font-weight:700;color:#1a1a1a;margin-top:3px">${j.name}</div>
-            ${j.address?`<div style="font-size:.8rem;color:#666;margin-top:2px;white-space:pre-line">${j.address}</div>`:''}
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:#aaa">DATE</div>
-            <div style="font-size:.8rem;color:#333;font-weight:600">${dateStr}</div>
-            <div style="font-size:.62rem;color:#aaa;margin-top:5px">VALID UNTIL</div>
-            <div style="font-size:.78rem;color:#555">${validUntil}</div>
-          </div>
-        </div>
-      </div>
-      <div style="padding:16px;border-bottom:1px solid #ebebeb">
-        <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">SCOPE OF WORK</div>
-        ${p.productDesc?`<div style="font-size:.95rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">${p.productDesc}</div>`:''}
-        ${p.scopeNotes?`<div style="font-size:.86rem;color:#444;line-height:1.65;white-space:pre-wrap">${p.scopeNotes.replace(/</g,'&lt;')}</div>`:`<div style="font-size:.86rem;color:#aaa;font-style:italic">Full scope of work included.</div>`}
-        ${p.additionalCharges&&p.additionalDesc?`<div style="margin-top:7px;font-size:.84rem;color:#444">• ${p.additionalDesc}</div>`:''}
-      </div>
-      <div style="padding:18px 16px;background:linear-gradient(135deg,${brand}18,#fff);border-bottom:1px solid #ebebeb">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700">TOTAL INVESTMENT</div>
-            <div style="font-size:.78rem;color:#888;margin-top:2px">Materials &amp; labor included</div>
-          </div>
-          <div style="font-family:var(--head);font-size:2.2rem;font-weight:800;color:${brand};line-height:1">${fmt(p.grandTotal)}</div>
-        </div>
-      </div>
-      ${cp.payTerms?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb"><div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:4px">PAYMENT TERMS</div><div style="font-size:.83rem;color:#444">${cp.payTerms}</div></div>`:''}
-      ${cp.notes?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb;background:#fafafa"><div style="font-size:.74rem;color:#888;line-height:1.6">${cp.notes}</div></div>`:''}
-      <div style="padding:10px 16px;display:flex;justify-content:space-between;align-items:center;background:#f5f5f5">
-        ${cp.license?`<span style="font-size:.68rem;color:#aaa">Lic: ${cp.license}</span>`:'<span></span>'}
-        <span style="font-size:.65rem;color:#ccc">Powered by Ridgeline</span>
-      </div>
+      ${proposalHeader}${scopeSection}${pricingSection}${termsSection}${notesSection}${footerSection}
     </div>`;
 
   body.innerHTML=contractorSection+customerView+`
     <div style="height:14px"></div>
-    <button class="btn btn-outline" onclick="openProposalSetup()" style="border-color:var(--blue);color:var(--blue)">✏️ Edit Proposal Numbers</button>
+    <button class="btn btn-outline" onclick="openProposalSetup()" style="border-color:var(--blue);color:var(--blue)">✏️ Edit Proposal</button>
     <div style="height:8px"></div>
     <div style="background:rgba(45,125,210,.08);border:1px solid rgba(45,125,210,.2);border-radius:8px;padding:10px 14px;text-align:center;font-size:.78rem;color:var(--muted)">
       📤 Shareable customer link &amp; e-signature — <strong style="color:var(--text)">Coming Soon</strong>
