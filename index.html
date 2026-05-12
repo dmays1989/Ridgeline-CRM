@@ -442,6 +442,10 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       <div id="cpSettingsSummary" style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Set up your company branding, contact info, and proposal defaults.</div>
       <button class="btn btn-accent" onclick="showCompanyProfile()">🏢 Edit Company Profile</button>
     </div></div>
+    <div class="card"><div class="card-header"><h3>💲 Pricing Setup</h3></div><div class="card-body">
+      <div id="pricingSettingsSummary" style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Set your material prices per category. Labor is entered per job during proposal creation.</div>
+      <button class="btn btn-blue" onclick="showPricing()">💲 Edit Pricing Setup</button>
+    </div></div>
     <div class="card"><div class="card-header"><h3>👤 Account</h3></div><div class="card-body">
       <div id="settingsUserInfo" style="font-size:.85rem;color:var(--muted);margin-bottom:8px"></div>
       <div id="settingsCompanyCode" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px">
@@ -467,6 +471,97 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
   </div>
 </div>
 
+
+<!-- ═══ SCREEN: PRICING SETUP ═══ -->
+<div class="screen hidden" id="screen-pricing">
+  <div class="topbar">
+    <div class="icon-btn" onclick="showScreen('settings');renderSettings()">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+    </div>
+    <div class="topbar-title">PRICING SETUP</div>
+  </div>
+  <div class="scroll-body">
+    <div style="background:rgba(45,125,210,.08);border:1px solid rgba(45,125,210,.25);border-radius:8px;padding:11px 13px;margin-bottom:14px;font-size:.8rem;color:var(--muted);line-height:1.6">
+      Enter your <strong style="color:var(--text)">customer-facing prices</strong> per category. Material cost breakdowns stay on your side only. Labor is entered fresh per job during proposal creation.
+    </div>
+
+    <!-- SHINGLES -->
+    <div class="card">
+      <div class="card-header"><h3>🏠 Shingles <span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:6px">$ per square (100 SF)</span></h3></div>
+      <div class="card-body">
+        <div class="inp-row">
+          <div class="field"><label>3-Tab</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-shingle-3tab" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+          <div class="field"><label>Architectural</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-shingle-arch" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        </div>
+        <div class="field"><label>Luxury / Designer</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-shingle-luxury" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+      </div>
+    </div>
+
+    <!-- METAL PANELS -->
+    <div class="card">
+      <div class="card-header"><h3>🔩 Metal Panels <span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:6px">$ per square (100 SF)</span></h3></div>
+      <div class="card-body">
+        <div class="inp-row">
+          <div class="field"><label>AG Panel</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-ag" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+          <div class="field"><label>PBR Panel</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-pbr" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        </div>
+        <div class="inp-row">
+          <div class="field"><label>Standing Seam 16"</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-ss16" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+          <div class="field"><label>Standing Seam 17"</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-ss17" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FLAT / MEMBRANE -->
+    <div class="card">
+      <div class="card-header"><h3>🌊 Flat / Membrane <span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:6px">$ per square (100 SF)</span></h3></div>
+      <div class="card-body">
+        <div class="inp-row">
+          <div class="field"><label>TPO</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-flat-tpo" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+          <div class="field"><label>PVC</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-flat-pvc" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCESSORIES & TRIM -->
+    <div class="card">
+      <div class="card-header"><h3>🔧 Accessories &amp; Trim</h3></div>
+      <div class="card-body">
+        <div class="inp-row">
+          <div class="field"><label>Trim <span style="color:var(--dim)">$ / LF</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-trim-lf" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+          <div class="field"><label>Ridge Cap <span style="color:var(--dim)">$ / LF</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-ridge-lf" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        </div>
+        <div class="inp-row">
+          <div class="field"><label>Ice &amp; Water <span style="color:var(--dim)">$ / sq</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-icewater" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+          <div class="field"><label>Underlayment <span style="color:var(--dim)">$ / sq</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-underlay" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        </div>
+        <div class="inp-row">
+          <div class="field"><label>Gutters <span style="color:var(--dim)">$ / LF</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-gutters-lf" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+          <div class="field"><label>Tear-Off <span style="color:var(--dim)">$ / sq</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-tearoff" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRODUCT LIBRARY PREVIEW -->
+    <div class="card">
+      <div class="card-header"><h3>🎨 Product Library</h3></div>
+      <div class="card-body">
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.6">Products and color swatches available for customer proposals. Photos coming soon.</div>
+        <!-- Shingle Products -->
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:8px">Shingles</div>
+        <div id="lib-shingles" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+        <!-- Metal Products -->
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:8px">Metal Panels</div>
+        <div id="lib-metal" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+        <!-- Flat Products -->
+        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:8px">Flat / Membrane</div>
+        <div id="lib-flat" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-accent" onclick="savePricing()" style="margin-bottom:20px">💾 Save Pricing</button>
+  </div>
+</div>
 
 <!-- ═══ SCREEN: COMPANY PROFILE ═══ -->
 <div class="screen hidden" id="screen-company">
@@ -3070,6 +3165,7 @@ function onUserReady(){
     loadSharedCamToken();
     loadUserProfile();
     loadTeamMembers();
+    loadPricing();
     loadCompanyProfile();
     listenNotifications();
     listenSchedules();
@@ -4163,6 +4259,168 @@ async function saveCompanyProfile(){
     const sum = document.getElementById('cpSettingsSummary');
     if(sum) sum.innerHTML = `<strong style="color:var(--text)">${profile.name}</strong><br><span style="font-size:.75rem">${profile.phone||''} · ${profile.email||''}</span>`;
     showToast('Company profile saved!','success');
+    showScreen('settings');renderSettings();
+  }catch(e){showToast('Error saving: '+e.message,'error');}
+}
+
+// ══ PRICING SETUP ══
+
+const PRODUCT_LIBRARY = {
+  shingles: [
+    { id:'gaf-hdz', brand:'GAF', name:'Timberline HDZ', type:'Architectural',
+      colors:[
+        {name:'Charcoal',hex:'#3a3a3a'},{name:'Pewter Gray',hex:'#8a8a8a'},
+        {name:'Barkwood',hex:'#6b5a3e'},{name:'Hickory',hex:'#7a6245'},
+        {name:'Shakewood',hex:'#5c4d35'},{name:'Weathered Wood',hex:'#9b8b6a'},
+        {name:'Slate',hex:'#607080'},{name:'Fox Hollow Gray',hex:'#5a6070'},
+        {name:'Hunter Green',hex:'#2d4a2d'},{name:'Oyster Gray',hex:'#b0a89a'}
+      ]},
+    { id:'oc-duration', brand:'Owens Corning', name:'Duration', type:'Architectural',
+      colors:[
+        {name:'Onyx Black',hex:'#1a1a1a'},{name:'Chateau Gray',hex:'#7a7a80'},
+        {name:'Brownwood',hex:'#6b5030'},{name:'Driftwood',hex:'#8a7a60'},
+        {name:'Desert Tan',hex:'#c4a96a'},{name:'Estate Gray',hex:'#5a6068'},
+        {name:'Harbor Blue',hex:'#4a5a70'},{name:'Teak',hex:'#7a6040'}
+      ]},
+    { id:'ct-landmark', brand:'CertainTeed', name:'Landmark', type:'Architectural',
+      colors:[
+        {name:'Charcoal Black',hex:'#2a2a2a'},{name:'Colonial Slate',hex:'#6a7080'},
+        {name:'Heather Blend',hex:'#7a6875'},{name:'Moire Black',hex:'#1e1e22'},
+        {name:'Resawn Shake',hex:'#7a6048'},{name:'Weathered Wood',hex:'#9a8a68'}
+      ]},
+    { id:'tamko-heritage', brand:'TAMKO', name:'Heritage', type:'Architectural',
+      colors:[
+        {name:'Rustic Black',hex:'#252520'},{name:'Rustic Slate',hex:'#5a6070'},
+        {name:'Rustic Redwood',hex:'#6a3028'},{name:'Rustic Timber Brown',hex:'#5a4030'},
+        {name:'Weathered Wood',hex:'#908068'},{name:'Natural Timber',hex:'#7a6848'}
+      ]},
+    { id:'gaf-3tab', brand:'GAF', name:'Royal Sovereign', type:'3-Tab',
+      colors:[
+        {name:'Charcoal',hex:'#3a3a3a'},{name:'Slate',hex:'#607080'},
+        {name:'Biscayne Blue',hex:'#4a5870'},{name:'Colonial White',hex:'#d0ccc0'},
+        {name:'Silver Lining',hex:'#9a9a9a'}
+      ]}
+  ],
+  metal: [
+    { id:'metal-ag', brand:'', name:'AG Panel', type:'AG Panel',
+      colors:[
+        {name:'Galvalume',hex:'#b8c0c0'},{name:'Polar White',hex:'#f0f0f0'},
+        {name:'Matte Black',hex:'#1a1a1a'},{name:'Charcoal Gray',hex:'#4a4a4a'},
+        {name:'Patina Green',hex:'#4a7060'},{name:'Burnished Slate',hex:'#5a5a68'},
+        {name:'Rustic Red',hex:'#8a3028'},{name:'Burgundy',hex:'#6a2030'},
+        {name:'Forest Green',hex:'#2a4a2a'},{name:'Tan',hex:'#c0a870'},
+        {name:'Light Stone',hex:'#d0c8b0'},{name:'Colonial Red',hex:'#903020'}
+      ]},
+    { id:'metal-pbr', brand:'', name:'PBR Panel', type:'PBR Panel',
+      colors:[
+        {name:'Galvalume',hex:'#b8c0c0'},{name:'Polar White',hex:'#f0f0f0'},
+        {name:'Matte Black',hex:'#1a1a1a'},{name:'Charcoal Gray',hex:'#4a4a4a'},
+        {name:'Patina Green',hex:'#4a7060'},{name:'Burnished Slate',hex:'#5a5a68'},
+        {name:'Rustic Red',hex:'#8a3028'},{name:'Burgundy',hex:'#6a2030'},
+        {name:'Forest Green',hex:'#2a4a2a'},{name:'Tan',hex:'#c0a870'},
+        {name:'Light Stone',hex:'#d0c8b0'},{name:'Colonial Red',hex:'#903020'}
+      ]},
+    { id:'metal-ss16', brand:'', name:'Standing Seam 16"', type:'Standing Seam',
+      colors:[
+        {name:'Galvalume',hex:'#b8c0c0'},{name:'Polar White',hex:'#f0f0f0'},
+        {name:'Matte Black',hex:'#1a1a1a'},{name:'Charcoal Gray',hex:'#4a4a4a'},
+        {name:'Patina Green',hex:'#4a7060'},{name:'Burnished Slate',hex:'#5a5a68'},
+        {name:'Copper Metallic',hex:'#a07040'},{name:'Champagne',hex:'#c8b890'},
+        {name:'Mansard Brown',hex:'#604830'}
+      ]},
+    { id:'metal-ss17', brand:'', name:'Standing Seam 17"', type:'Standing Seam',
+      colors:[
+        {name:'Galvalume',hex:'#b8c0c0'},{name:'Polar White',hex:'#f0f0f0'},
+        {name:'Matte Black',hex:'#1a1a1a'},{name:'Charcoal Gray',hex:'#4a4a4a'},
+        {name:'Patina Green',hex:'#4a7060'},{name:'Burnished Slate',hex:'#5a5a68'},
+        {name:'Copper Metallic',hex:'#a07040'},{name:'Champagne',hex:'#c8b890'},
+        {name:'Mansard Brown',hex:'#604830'}
+      ]}
+  ],
+  flat: [
+    { id:'flat-tpo-white', brand:'Firestone', name:'UltraPly TPO', type:'TPO',
+      colors:[{name:'White',hex:'#f0f0f0'},{name:'Gray',hex:'#909090'},{name:'Tan',hex:'#c8b890'}]},
+    { id:'flat-pvc-white', brand:'Carlisle', name:'Sure-Weld PVC', type:'PVC',
+      colors:[{name:'White',hex:'#f0f0f0'},{name:'Gray',hex:'#909090'},{name:'Tan',hex:'#c8b890'}]}
+  ]
+};
+
+function pricingRef(){
+  if(!fbDb||!_companyCode)return null;
+  return fbDb.collection('companies').doc(_companyCode).collection('settings').doc('pricing');
+}
+
+let _pricing = {};
+
+async function loadPricing(){
+  const ref = pricingRef();
+  if(!ref)return;
+  try{
+    const snap = await ref.get();
+    if(snap.exists) _pricing = snap.data();
+  }catch(e){console.error('loadPricing:',e);}
+}
+
+function showPricing(){
+  showScreen('pricing');
+  // Populate fields
+  const fields = ['shingle-3tab','shingle-arch','shingle-luxury',
+    'metal-ag','metal-pbr','metal-ss16','metal-ss17',
+    'flat-tpo','flat-pvc',
+    'trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
+  fields.forEach(f=>{
+    const el = document.getElementById('pr-'+f);
+    if(el && _pricing[f]) el.value = _pricing[f];
+  });
+  renderProductLibrary();
+}
+
+function renderProductLibrary(){
+  renderLibSection('lib-shingles', PRODUCT_LIBRARY.shingles);
+  renderLibSection('lib-metal', PRODUCT_LIBRARY.metal);
+  renderLibSection('lib-flat', PRODUCT_LIBRARY.flat);
+}
+
+function renderLibSection(containerId, products){
+  const el = document.getElementById(containerId);
+  if(!el)return;
+  el.innerHTML = products.map(p=>`
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.88rem">${p.brand?p.brand+' — ':''}${p.name}</div>
+          <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${p.type}</div>
+        </div>
+        <div style="font-size:.65rem;color:var(--dim)">${p.colors.length} colors</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${p.colors.map(c=>`
+          <div title="${c.name}" style="display:flex;flex-direction:column;align-items:center;gap:3px;width:44px">
+            <div style="width:36px;height:36px;border-radius:6px;background:${c.hex};border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)"></div>
+            <div style="font-size:.52rem;color:var(--muted);text-align:center;line-height:1.2;word-break:break-word">${c.name}</div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function savePricing(){
+  const ref = pricingRef();
+  if(!ref){showToast('Not connected','error');return;}
+  const fields = ['shingle-3tab','shingle-arch','shingle-luxury',
+    'metal-ag','metal-pbr','metal-ss16','metal-ss17',
+    'flat-tpo','flat-pvc',
+    'trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
+  const data = {updatedAt: new Date().toISOString()};
+  fields.forEach(f=>{
+    const el = document.getElementById('pr-'+f);
+    if(el) data[f] = parseFloat(el.value)||0;
+  });
+  try{
+    await ref.set(data);
+    _pricing = data;
+    const sum = document.getElementById('pricingSettingsSummary');
+    if(sum) sum.innerHTML = `<strong style="color:var(--green)">✓ Prices saved</strong> — <span style="font-size:.75rem">Last updated ${new Date().toLocaleDateString()}</span>`;
+    showToast('Pricing saved!','success');
     showScreen('settings');renderSettings();
   }catch(e){showToast('Error saving: '+e.message,'error');}
 }
