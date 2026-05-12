@@ -917,7 +917,7 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
 </div>
 
 <!-- Proposal Template Picker -->
-<div class="modal-overlay hidden" id="modal-prop-template-picker">
+<div class="modal-overlay hidden" id="modal-prop-template-picker" style="z-index:300">
   <div style="flex:1" onclick="closeModal('prop-template-picker')"></div>
   <div class="modal-sheet" style="max-height:75vh">
     <div class="modal-drag"></div>
@@ -1075,8 +1075,8 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
         </div>
       </div>
 
-      <!-- Scope of work (single mode) -->
-      <div class="field">
+      <!-- Scope of work (single mode only) -->
+      <div class="field" id="propScopeField">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
           <label style="margin-bottom:0">Scope of Work</label>
           <button type="button" onclick="openTemplatePicker('propScopeNotes')" style="background:rgba(45,125,210,.15);border:1px solid rgba(45,125,210,.3);color:var(--blue);border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;font-weight:600">📋 Use Template</button>
@@ -2564,6 +2564,7 @@ function setProposalMode(mode){
   const isTiered=mode==='tiered';
   document.getElementById('propSingleFields').style.display=isTiered?'none':'block';
   document.getElementById('propTieredFields').style.display=isTiered?'block':'none';
+  document.getElementById('propScopeField').style.display=isTiered?'none':'block';
   const ms=document.getElementById('propModeSingle');
   const mt=document.getElementById('propModeTiered');
   ms.style.background=isTiered?'var(--bg)':'var(--accent)';ms.style.color=isTiered?'var(--muted)':'#fff';
