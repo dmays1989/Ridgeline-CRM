@@ -1639,7 +1639,9 @@ const CJ=()=>jobs[curJob];
 // ══ SCREEN ══
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.id==='screen-'+id?s.classList.remove('hidden'):s.classList.add('hidden'));
-  if(id!=='auth'){history.pushState({screen:id},'',location.pathname);}
+  // Keep ?p= in the URL for customer proposal so the ID survives pushState calls
+  if(id==='customer-proposal'){history.pushState({screen:id},'',location.pathname+(location.search||''));}
+  else if(id!=='auth'){history.pushState({screen:id},'',location.pathname);}
 }
 window.addEventListener('popstate',function(e){
   var openMod=document.querySelector('.modal-overlay:not(.hidden)');
@@ -2810,6 +2812,8 @@ function copyShareLink(){
 }
 
 // ══ CUSTOMER PROPOSAL — PUBLIC SIDE ══
+// Capture the ?p= proposal ID once at page-load before anything can strip it from the URL
+const _sharedProposalId=(new URLSearchParams(window.location.search)).get('p')||null;
 let _custPropData=null;
 let _custSelectedTier=null;
 let _custSigCanvas=null;
@@ -4247,11 +4251,11 @@ function initFirebase(){
         // Firebase 8 defaults to LOCAL persistence - no need to set it
         fbAuth.onAuthStateChanged(function(user){
           // Customer proposal URL — bypass auth entirely
-          var _sharedPropId=(new URLSearchParams(window.location.search)).get('p');
-          if(_sharedPropId){
+          // Use the module-level constant captured at page-load (before pushState strips the URL)
+          if(_sharedProposalId){
             if(!fbDb)fbDb=firebase.firestore();
             showScreen('customer-proposal');
-            loadCustomerProposal(_sharedPropId);
+            if(!_custPropData)loadCustomerProposal(_sharedProposalId);
             return;
           }
           if(user){
