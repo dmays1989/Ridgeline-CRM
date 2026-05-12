@@ -750,6 +750,11 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
   </div>
 </div>
 
+<!-- ═══ SCREEN: CUSTOMER PROPOSAL (public, no login) ═══ -->
+<div class="screen hidden" id="screen-customer-proposal" style="background:#f0f2f5;overflow-y:auto">
+  <div id="customerProposalBody" style="max-width:600px;margin:0 auto;padding:0 0 60px"></div>
+</div>
+
 <!-- ═══ SCREEN: PROPOSAL TEMPLATES ═══ -->
 <div class="screen hidden" id="screen-prop-templates">
   <div class="topbar">
@@ -857,6 +862,34 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
     </div>
     <div class="modal-body" id="notifList"><div style="color:var(--muted);text-align:center;padding:20px">No notifications</div></div>
     <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('notifications')">Close</button></div>
+  </div>
+</div>
+
+<!-- Share Proposal -->
+<div class="modal-overlay hidden" id="modal-share-proposal">
+  <div style="flex:1" onclick="closeModal('share-proposal')"></div>
+  <div class="modal-sheet">
+    <div class="modal-drag"></div>
+    <div class="modal-header"><h3>📤 Share Proposal</h3></div>
+    <div class="modal-body">
+      <div id="shareProposalStatus" style="text-align:center;padding:16px;color:var(--muted);font-size:.9rem">Generating link…</div>
+      <div id="shareProposalReady" style="display:none">
+        <div style="background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.25);border-radius:8px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:.6rem;color:var(--green);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px">Customer Link</div>
+          <div id="shareProposalUrl" style="font-size:.78rem;color:var(--text);word-break:break-all;line-height:1.5;font-family:var(--mono)"></div>
+        </div>
+        <button class="btn btn-accent" onclick="copyShareLink()">📋 Copy Link</button>
+        <div style="height:10px"></div>
+        <div style="background:rgba(240,101,10,.08);border:1px solid rgba(240,101,10,.25);border-radius:8px;padding:12px 14px;font-size:.76rem;color:var(--muted);line-height:1.7">
+          <strong style="color:var(--accent)">⚠️ One-time Firebase setup required</strong><br>
+          In your <a href="https://console.firebase.google.com" target="_blank" style="color:var(--blue)">Firebase Console</a> → Firestore → Rules, add:<br>
+          <code style="display:block;margin-top:6px;background:var(--bg);padding:8px;border-radius:5px;font-size:.72rem;color:#7dd3fc;line-height:1.8">match /sharedProposals/{id} {<br>&nbsp;&nbsp;allow read, write: if true;<br>}</code>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('share-proposal')">Close</button>
+    </div>
   </div>
 </div>
 
@@ -2704,6 +2737,338 @@ function applyPropTemplate(idx){
   showToast('Template applied');
 }
 
+// ══ SHAREABLE PROPOSAL — CONTRACTOR SIDE ══
+function getColorsForJob(j){
+  // Returns [{name,hex}] based on job's primary roof type
+  const sections=j.sections||[];
+  const types={};
+  sections.forEach(s=>{const t=secType(s);types[t]=(types[t]||0)+1;});
+  const primary=Object.entries(types).sort((a,b)=>b[1]-a[1])[0];
+  if(!primary)return[];
+  const type=primary[0];
+  if(type==='shingle'){
+    const brandToId={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage',gaf3tab:'gaf-3tab'};
+    const pid=brandToId[j.shingleBrand];
+    const all=[...(PRODUCT_LIBRARY.shingles||[]),...(PRODUCT_LIBRARY.metal||[]),...(PRODUCT_LIBRARY.flat||[])];
+    const prod=pid?all.find(p=>p.id===pid):null;
+    return prod?prod.colors:[];
+  }
+  // Metal — use METAL_COLORS as name-only swatches
+  if(['ag','pbr','ss16','ss17'].includes(type)){
+    return METAL_COLORS.map(n=>({name:n,hex:''}));
+  }
+  return[];
+}
+
+async function shareProposal(){
+  const j=CJ();if(!j||!j.proposal){showToast('Build a proposal first','error');return;}
+  // Show modal + spinner
+  document.getElementById('shareProposalStatus').style.display='block';
+  document.getElementById('shareProposalStatus').textContent='Generating link…';
+  document.getElementById('shareProposalReady').style.display='none';
+  openModal('share-proposal');
+  try{
+    if(!fbDb)throw new Error('Not connected');
+    const p=j.proposal;
+    const cp=_companyProfile||{};
+    const colors=getColorsForJob(j);
+    // Build per-tier color options if tiered
+    const tiers=p.mode==='tiered'?Object.fromEntries(['good','better','best'].map(level=>[level,{...(p.tiers[level]||{}),colorOptions:colors}])):null;
+    const propId=Date.now().toString(36)+Math.random().toString(36).substr(2,7);
+    const doc={
+      proposalId:propId,
+      companyCode:_companyCode,
+      jobId:j._docId||(j.id+''),
+      proposal:{...p,tiers:tiers||p.tiers},
+      colorOptions:colors,
+      companyProfile:{name:cp.name||'',tagline:cp.tagline||'',phone:cp.phone||'',email:cp.email||'',website:cp.website||'',address:cp.address||'',license:cp.license||'',payTerms:cp.payTerms||'',notes:cp.notes||'',boilerplate:cp.boilerplate||'',brandColor:cp.brandColor||'#f0650a',logo:cp.logo||''},
+      customerName:j.name,customerAddress:j.address||'',customerPhone:j.phone||'',
+      status:'sent',selectedTier:null,selectedColor:'',signerName:'',signature:'',signedAt:'',
+      createdAt:new Date().toISOString()
+    };
+    await fbDb.collection('sharedProposals').doc(propId).set(doc);
+    // Save share ID to job
+    j.proposal.sharedId=propId;
+    j.proposal.status='sent';
+    save(JOBS_KEY,jobs);
+    saveJobToFirestore(j).catch(e=>console.error(e));
+    const url=window.location.origin+window.location.pathname+'?p='+propId;
+    document.getElementById('shareProposalUrl').textContent=url;
+    window._shareProposalUrl=url;
+    document.getElementById('shareProposalStatus').style.display='none';
+    document.getElementById('shareProposalReady').style.display='block';
+    renderProposalScreen(); // refresh status badge
+  }catch(e){
+    document.getElementById('shareProposalStatus').textContent='Error: '+e.message;
+    console.error(e);
+  }
+}
+
+function copyShareLink(){
+  const url=window._shareProposalUrl;
+  if(!url)return;
+  navigator.clipboard.writeText(url).then(()=>showToast('Link copied!','success')).catch(()=>{
+    // fallback
+    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    showToast('Link copied!','success');
+  });
+}
+
+// ══ CUSTOMER PROPOSAL — PUBLIC SIDE ══
+let _custPropData=null;
+let _custSelectedTier=null;
+let _custSigCanvas=null;
+let _custSigDrawing=false;
+
+async function loadCustomerProposal(propId){
+  const body=document.getElementById('customerProposalBody');
+  body.innerHTML='<div style="text-align:center;padding:60px 20px;color:#888;font-size:.95rem">Loading proposal…</div>';
+  try{
+    const snap=await fbDb.collection('sharedProposals').doc(propId).get();
+    if(!snap.exists){body.innerHTML='<div style="text-align:center;padding:60px 20px;color:#888">Proposal not found or link has expired.</div>';return;}
+    _custPropData={...snap.data(),_propId:propId};
+    // Mark as viewed if not already signed
+    if(_custPropData.status==='sent'){
+      fbDb.collection('sharedProposals').doc(propId).update({status:'viewed'}).catch(()=>{});
+      _custPropData.status='viewed';
+    }
+    renderCustomerProposalPage();
+  }catch(e){
+    body.innerHTML=`<div style="text-align:center;padding:60px 20px;color:#888">Error loading proposal: ${e.message}<br><br><small>The proposal link may need Firestore rules updated. See the share dialog in the Ridgeline app.</small></div>`;
+  }
+}
+
+function renderCustomerProposalPage(){
+  const d=_custPropData;if(!d)return;
+  const body=document.getElementById('customerProposalBody');
+  const p=d.proposal||{};
+  const cp=d.companyProfile||{};
+  const brand=cp.brandColor||'#f0650a';
+  const fmt=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const now=new Date();
+  const dateStr=now.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const validity=cp.validity||30;
+  const validUntil=new Date(now.getTime()+validity*24*60*60*1000).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const logoHtml=cp.logo?`<img src="${cp.logo}" style="height:56px;width:auto;object-fit:contain;border-radius:4px;background:rgba(255,255,255,.15);padding:4px"/>`:`<div style="width:52px;height:52px;border-radius:8px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.6rem">🏠</div>`;
+  const isSigned=d.status==='signed';
+  const isDeclined=d.status==='declined';
+
+  // Signed banner
+  const signedBanner=isSigned?`<div style="background:#1db954;color:white;text-align:center;padding:14px;font-weight:700;font-size:1rem;letter-spacing:.5px">✓ Proposal Accepted — Thank You!</div>`:(isDeclined?`<div style="background:#e03030;color:white;text-align:center;padding:12px;font-weight:700;font-size:.9rem">This proposal was declined.</div>`:'');
+
+  // Company header
+  const header=`<div style="background:${brand};padding:20px 18px;display:flex;align-items:center;gap:14px">
+    ${logoHtml}
+    <div style="flex:1"><div style="color:white;font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:700;letter-spacing:.5px">${cp.name||''}</div>
+    ${cp.tagline?`<div style="color:rgba(255,255,255,.82);font-size:.75rem;margin-top:2px">${cp.tagline}</div>`:''}
+    </div></div>
+  ${(cp.phone||cp.email||cp.website)?`<div style="background:#f6f6f6;padding:9px 16px;display:flex;flex-wrap:wrap;gap:12px;border-bottom:1px solid #e8e8e8">${cp.phone?`<a href="tel:${cp.phone}" style="font-size:.8rem;color:#555;text-decoration:none">📞 ${cp.phone}</a>`:''}${cp.email?`<a href="mailto:${cp.email}" style="font-size:.8rem;color:#555;text-decoration:none">✉️ ${cp.email}</a>`:''}${cp.website?`<span style="font-size:.8rem;color:#555">🌐 ${cp.website}</span>`:''}
+  </div>`:''}`;
+
+  // Customer + date row
+  const custRow=`<div style="padding:18px 16px 14px;border-bottom:1px solid #ebebeb;background:white">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <div><div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700">PROPOSAL FOR</div>
+        <div style="font-size:1.05rem;font-weight:700;color:#1a1a1a;margin-top:3px">${d.customerName||''}</div>
+        ${d.customerAddress?`<div style="font-size:.8rem;color:#666;margin-top:2px;white-space:pre-line">${d.customerAddress}</div>`:''}
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:#aaa">DATE</div>
+        <div style="font-size:.8rem;color:#333;font-weight:600">${dateStr}</div>
+        <div style="font-size:.62rem;color:#aaa;margin-top:5px">VALID UNTIL</div>
+        <div style="font-size:.78rem;color:#555">${validUntil}</div>
+      </div>
+    </div></div>`;
+
+  // Options / pricing
+  let optionsHtml='';
+  if(p.mode==='tiered'){
+    const tiers=p.tiers||{};
+    const tierDefs=[
+      {id:'good',label:'GOOD',border:'#ddd',badgeBg:'#888',badgeColor:'#fff',priceColor:'#555',popular:false},
+      {id:'better',label:'BETTER',border:brand,badgeBg:brand,badgeColor:'#fff',priceColor:brand,popular:true},
+      {id:'best',label:'BEST',border:'#1db954',badgeBg:'#1db954',badgeColor:'#fff',priceColor:'#1db954',popular:false}
+    ];
+    const tierCards=tierDefs.map(tc=>{
+      const t=tiers[tc.id]||{};
+      const price=t.grandTotal||0;
+      const isSelected=_custSelectedTier===tc.id;
+      return`<div onclick="${isSigned||isDeclined?'':'customerSelectTier(\''+tc.id+'\')'}" style="border:2px solid ${isSelected?tc.border:(tc.popular?tc.border:'#ddd')};border-radius:10px;padding:14px 12px;margin-bottom:8px;position:relative;background:${isSelected?tc.badgeBg+'15':'#fff'};cursor:${isSigned||isDeclined?'default':'pointer'};transition:all .2s">
+        ${tc.popular?`<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:${tc.badgeBg};color:${tc.badgeColor};padding:3px 12px;border-radius:20px;font-size:.62rem;font-weight:700;white-space:nowrap">⭐ MOST POPULAR</div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${tc.popular?'14px':'8px'}">
+          <div style="display:inline-block;padding:3px 10px;border-radius:20px;background:${isSelected?tc.badgeBg:'#f0f0f0'};font-size:.63rem;font-weight:700;color:${isSelected?tc.badgeColor:'#888'}">${tc.label}</div>
+          ${isSelected?`<div style="color:${tc.badgeBg};font-size:.75rem;font-weight:700">✓ Selected</div>`:''}
+        </div>
+        ${t.productDesc?`<div style="font-size:.9rem;font-weight:700;color:#1a1a1a;margin-bottom:4px">${t.productDesc}</div>`:''}
+        ${t.scopeNotes?`<div style="font-size:.78rem;color:#666;line-height:1.5;margin-bottom:8px;white-space:pre-wrap">${t.scopeNotes.replace(/</g,'&lt;')}</div>`:''}
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:800;color:${tc.priceColor}">${fmt(price)}</div>
+      </div>`;
+    }).join('');
+    optionsHtml=`<div style="padding:16px;border-bottom:1px solid #ebebeb;background:white">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:14px">${isSigned?'YOUR SELECTED OPTION':'CHOOSE YOUR OPTION'}</div>
+      ${tierCards}</div>`;
+  } else {
+    // Single price scope
+    const scopeHtml=(p.productDesc||p.scopeNotes)?`<div style="padding:16px;border-bottom:1px solid #ebebeb;background:white">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">SCOPE OF WORK</div>
+      ${p.productDesc?`<div style="font-size:.95rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">${p.productDesc}</div>`:''}
+      ${p.scopeNotes?`<div style="font-size:.86rem;color:#444;line-height:1.65;white-space:pre-wrap">${p.scopeNotes.replace(/</g,'&lt;')}</div>`:''}
+    </div>`:'';
+    optionsHtml=scopeHtml+`<div style="padding:18px 16px;background:linear-gradient(135deg,${brand}18,#fff);border-bottom:1px solid #ebebeb">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700">TOTAL INVESTMENT</div>
+          <div style="font-size:.78rem;color:#888;margin-top:2px">Materials &amp; labor included</div></div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:2.2rem;font-weight:800;color:${brand}">${fmt(p.grandTotal||0)}</div>
+      </div></div>`;
+  }
+
+  // Color selection
+  const activeColors=_custSelectedTier&&p.mode==='tiered'?(p.tiers&&p.tiers[_custSelectedTier]&&p.tiers[_custSelectedTier].colorOptions||d.colorOptions||[]):(d.colorOptions||[]);
+  let colorHtml='';
+  if(activeColors.length&&!isSigned&&!isDeclined){
+    const swatches=activeColors.map(c=>{
+      const selected=window._custSelectedColor===c.name;
+      return`<div onclick="customerSelectColor('${c.name.replace(/'/g,"\\'")}')" style="display:inline-flex;flex-direction:column;align-items:center;gap:4px;margin:4px;cursor:pointer;opacity:${selected?1:.75};transition:all .15s">
+        <div style="width:44px;height:44px;border-radius:50%;background:${c.hex||'#ccc'};border:3px solid ${selected?brand:'transparent'};box-shadow:${selected?'0 0 0 2px '+brand:'0 1px 3px rgba(0,0,0,.2)'};transition:all .15s"></div>
+        <div style="font-size:.6rem;color:#555;text-align:center;max-width:48px;line-height:1.2">${c.name}</div>
+      </div>`;
+    }).join('');
+    colorHtml=`<div style="padding:16px;border-bottom:1px solid #ebebeb;background:white">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:12px">CHOOSE YOUR COLOR</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">${swatches}</div>
+    </div>`;
+  } else if(isSigned&&d.selectedColor){
+    colorHtml=`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb;background:white;font-size:.85rem;color:#444">Color selected: <strong>${d.selectedColor}</strong></div>`;
+  }
+
+  // Terms + boilerplate
+  const termsHtml=cp.payTerms?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb;background:white"><div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:4px">PAYMENT TERMS</div><div style="font-size:.83rem;color:#444">${cp.payTerms}</div></div>`:'';
+  const notesHtml=cp.notes?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb;background:#fafafa"><div style="font-size:.74rem;color:#888;line-height:1.6">${cp.notes}</div></div>`:'';
+  const boilerplateHtml=cp.boilerplate?`<div style="padding:14px 16px;border-bottom:1px solid #ebebeb;background:white"><div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">ACCEPTANCE OF PROPOSAL</div><div style="font-size:.8rem;color:#555;line-height:1.7;white-space:pre-wrap">${cp.boilerplate}</div></div>`:'';
+
+  // Signature section
+  let sigHtml='';
+  if(isSigned){
+    sigHtml=`<div style="padding:16px;background:white;border-bottom:1px solid #ebebeb">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">SIGNATURE</div>
+      ${d.signature?`<img src="${d.signature}" style="max-width:100%;height:auto;border:1px solid #eee;border-radius:6px;margin-bottom:8px"/>`:''}
+      <div style="font-size:.85rem;color:#333">Signed by: <strong>${d.signerName||'—'}</strong></div>
+      <div style="font-size:.75rem;color:#888;margin-top:3px">${d.signedAt?new Date(d.signedAt).toLocaleString():'—'}</div>
+    </div>`;
+  } else if(!isDeclined){
+    sigHtml=`<div style="padding:16px;background:white">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:12px">YOUR SIGNATURE</div>
+      <div class="field" style="margin-bottom:10px">
+        <label style="font-size:.7rem;color:#666;display:block;margin-bottom:4px">Full Name *</label>
+        <input id="custSigName" type="text" placeholder="Type your full name" style="width:100%;padding:11px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:.95rem;outline:none;font-family:inherit"/>
+      </div>
+      <div style="font-size:.7rem;color:#666;margin-bottom:6px">Draw your signature below:</div>
+      <canvas id="custSigCanvas" width="560" height="140" style="width:100%;height:140px;border:1.5px solid #ddd;border-radius:8px;touch-action:none;background:white;cursor:crosshair"></canvas>
+      <button onclick="clearCustSig()" style="margin-top:6px;background:none;border:1px solid #ddd;border-radius:5px;padding:5px 12px;font-size:.75rem;color:#888;cursor:pointer">Clear</button>
+      <div style="margin-top:14px;padding:10px 12px;background:#f8f8f8;border-radius:7px;font-size:.75rem;color:#666;line-height:1.6">
+        By signing above, you authorize the work as described in this proposal.
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px">
+        <button onclick="customerSubmitSignature()" style="flex:2;padding:14px;background:${brand};color:white;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;cursor:pointer">✓ ACCEPT PROPOSAL</button>
+        <button onclick="customerDeclineProposal()" style="flex:1;padding:14px;background:none;border:1.5px solid #ddd;border-radius:10px;font-size:.8rem;color:#888;cursor:pointer">Decline</button>
+      </div>
+    </div>`;
+  }
+
+  const footer=`<div style="padding:12px 16px;text-align:center;background:#f5f5f5"><span style="font-size:.65rem;color:#ccc">Powered by Ridgeline</span></div>`;
+
+  body.innerHTML=`<div style="background:white;box-shadow:0 2px 20px rgba(0,0,0,.1);overflow:hidden">
+    ${signedBanner}${header}${custRow}${optionsHtml}${colorHtml}${termsHtml}${notesHtml}${boilerplateHtml}${sigHtml}${footer}
+  </div>`;
+
+  // Init signature canvas
+  if(!isSigned&&!isDeclined) setTimeout(initCustSigCanvas,100);
+}
+
+function customerSelectTier(tier){
+  _custSelectedTier=tier;
+  window._custSelectedColor='';
+  renderCustomerProposalPage();
+  // Scroll to color picker
+  setTimeout(()=>{const el=document.querySelector('#customerProposalBody [onclick*="customerSelectColor"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200);
+}
+
+function customerSelectColor(name){
+  window._custSelectedColor=name;
+  renderCustomerProposalPage();
+  // Scroll to signature
+  setTimeout(()=>{const el=document.getElementById('custSigName');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200);
+}
+
+function initCustSigCanvas(){
+  const canvas=document.getElementById('custSigCanvas');
+  if(!canvas)return;
+  _custSigCanvas=canvas;
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1a1a1a';ctx.lineWidth=2.5;ctx.lineCap='round';ctx.lineJoin='round';
+  let drawing=false,lastX=0,lastY=0;
+  function getPos(e){
+    const r=canvas.getBoundingClientRect();
+    const scaleX=canvas.width/r.width,scaleY=canvas.height/r.height;
+    const src=e.touches?e.touches[0]:e;
+    return{x:(src.clientX-r.left)*scaleX,y:(src.clientY-r.top)*scaleY};
+  }
+  function start(e){e.preventDefault();drawing=true;const p=getPos(e);lastX=p.x;lastY=p.y;ctx.beginPath();ctx.arc(p.x,p.y,1,0,Math.PI*2);ctx.fill();}
+  function draw(e){e.preventDefault();if(!drawing)return;const p=getPos(e);ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(p.x,p.y);ctx.stroke();lastX=p.x;lastY=p.y;}
+  function end(e){e.preventDefault();drawing=false;}
+  canvas.addEventListener('mousedown',start);canvas.addEventListener('mousemove',draw);canvas.addEventListener('mouseup',end);canvas.addEventListener('mouseleave',end);
+  canvas.addEventListener('touchstart',start,{passive:false});canvas.addEventListener('touchmove',draw,{passive:false});canvas.addEventListener('touchend',end,{passive:false});
+}
+
+function clearCustSig(){
+  if(!_custSigCanvas)return;
+  const ctx=_custSigCanvas.getContext('2d');
+  ctx.clearRect(0,0,_custSigCanvas.width,_custSigCanvas.height);
+}
+
+async function customerSubmitSignature(){
+  const d=_custPropData;if(!d)return;
+  const name=(document.getElementById('custSigName')||{}).value||'';
+  if(!name.trim()){alert('Please enter your full name.');return;}
+  const p=d.proposal||{};
+  if(p.mode==='tiered'&&!_custSelectedTier){alert('Please select an option (Good, Better, or Best) before signing.');return;}
+  // Get signature image from canvas
+  let sigData='';
+  if(_custSigCanvas){
+    // Check if canvas has any drawing
+    const ctx=_custSigCanvas.getContext('2d');
+    const imgData=ctx.getImageData(0,0,_custSigCanvas.width,_custSigCanvas.height);
+    const hasDrawing=imgData.data.some((v,i)=>i%4===3&&v>0);
+    if(!hasDrawing){alert('Please draw your signature.');return;}
+    sigData=_custSigCanvas.toDataURL('image/png');
+  }
+  try{
+    const update={
+      status:'signed',
+      selectedTier:_custSelectedTier||null,
+      selectedColor:window._custSelectedColor||'',
+      signerName:name.trim(),
+      signature:sigData,
+      signedAt:new Date().toISOString()
+    };
+    await fbDb.collection('sharedProposals').doc(d._propId).update(update);
+    Object.assign(_custPropData,update);
+    renderCustomerProposalPage();
+    // Scroll to top
+    document.getElementById('screen-customer-proposal').scrollTop=0;
+  }catch(e){alert('Error submitting: '+e.message);}
+}
+
+async function customerDeclineProposal(){
+  const d=_custPropData;if(!d)return;
+  if(!confirm('Are you sure you want to decline this proposal?'))return;
+  try{
+    await fbDb.collection('sharedProposals').doc(d._propId).update({status:'declined'});
+    _custPropData.status='declined';
+    renderCustomerProposalPage();
+  }catch(e){alert('Error: '+e.message);}
+}
+
 function saveProposalSetup(){
   const j=CJ();if(!j)return;
   const sq=window._propTotalSq||0;
@@ -2898,12 +3263,20 @@ function renderProposalScreen(){
       ${proposalHeader}${scopeSection}${pricingSection}${termsSection}${notesSection}${boilerplateSection}${footerSection}
     </div>`;
 
-  body.innerHTML=contractorSection+customerView+`
+  // Status badge
+  const STATUS_STYLES={draft:{label:'Draft',bg:'rgba(107,122,153,.15)',color:'var(--muted)'},sent:{label:'Sent',bg:'rgba(45,125,210,.15)',color:'var(--blue)'},viewed:{label:'Viewed',bg:'rgba(240,165,0,.15)',color:'#f0a500'},signed:{label:'Signed ✓',bg:'rgba(29,185,84,.15)',color:'var(--green)'},declined:{label:'Declined',bg:'rgba(224,48,48,.15)',color:'var(--red)'}};
+  const st=STATUS_STYLES[p.status||'draft']||STATUS_STYLES.draft;
+  const statusBadge=`<div style="display:inline-block;padding:4px 12px;border-radius:20px;background:${st.bg};color:${st.color};font-size:.72rem;font-weight:700;letter-spacing:.5px;margin-bottom:10px">${st.label}</div>`;
+  const signedInfo=p.status==='signed'?`<div style="background:rgba(29,185,84,.08);border:1px solid rgba(29,185,84,.25);border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:.82rem">
+    <div style="color:var(--green);font-weight:700;margin-bottom:3px">✓ Signed by ${p.signerName||'customer'}</div>
+    <div style="color:var(--muted)">${p.selectedTier?'Option: '+p.selectedTier.charAt(0).toUpperCase()+p.selectedTier.slice(1)+' · ':''} ${p.selectedColor?'Color: '+p.selectedColor+' · ':''} ${p.signedAt?new Date(p.signedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''}  </div>
+  </div>`:'';
+
+  body.innerHTML=statusBadge+signedInfo+contractorSection+customerView+`
     <div style="height:14px"></div>
-    <button class="btn btn-outline" onclick="openProposalSetup()" style="border-color:var(--blue);color:var(--blue)">✏️ Edit Proposal</button>
-    <div style="height:8px"></div>
-    <div style="background:rgba(45,125,210,.08);border:1px solid rgba(45,125,210,.2);border-radius:8px;padding:10px 14px;text-align:center;font-size:.78rem;color:var(--muted)">
-      📤 Shareable customer link &amp; e-signature — <strong style="color:var(--text)">Coming Soon</strong>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-outline" onclick="openProposalSetup()" style="border-color:var(--blue);color:var(--blue);flex:1">✏️ Edit</button>
+      <button class="btn" style="background:var(--accent);color:#fff;border:none;flex:1" onclick="shareProposal()">📤 Share</button>
     </div>`;
 }
 
@@ -3878,6 +4251,14 @@ function initFirebase(){
         if(statusEl)statusEl.textContent='Ready ✓';
         // Firebase 8 defaults to LOCAL persistence - no need to set it
         fbAuth.onAuthStateChanged(function(user){
+          // Customer proposal URL — bypass auth entirely
+          var _sharedPropId=(new URLSearchParams(window.location.search)).get('p');
+          if(_sharedPropId){
+            if(!fbDb)fbDb=firebase.firestore();
+            showScreen('customer-proposal');
+            loadCustomerProposal(_sharedPropId);
+            return;
+          }
           if(user){
             fbUser=user;
             if(!fbDb)fbDb=firebase.firestore();
