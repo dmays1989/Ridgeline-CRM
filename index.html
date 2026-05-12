@@ -879,12 +879,6 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
           <div id="shareProposalUrl" style="font-size:.78rem;color:var(--text);word-break:break-all;line-height:1.5;font-family:var(--mono)"></div>
         </div>
         <button class="btn btn-accent" onclick="copyShareLink()">📋 Copy Link</button>
-        <div style="height:10px"></div>
-        <div style="background:rgba(240,101,10,.08);border:1px solid rgba(240,101,10,.25);border-radius:8px;padding:12px 14px;font-size:.76rem;color:var(--muted);line-height:1.7">
-          <strong style="color:var(--accent)">⚠️ One-time Firebase setup required</strong><br>
-          In your <a href="https://console.firebase.google.com" target="_blank" style="color:var(--blue)">Firebase Console</a> → Firestore → Rules, add:<br>
-          <code style="display:block;margin-top:6px;background:var(--bg);padding:8px;border-radius:5px;font-size:.72rem;color:#7dd3fc;line-height:1.8">match /sharedProposals/{id} {<br>&nbsp;&nbsp;allow read, write: if true;<br>}</code>
-        </div>
       </div>
     </div>
     <div class="modal-footer">
