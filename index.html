@@ -479,49 +479,15 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
     </div>
     <div class="topbar-title">PRICING SETUP</div>
+    <div class="icon-btn accent" onclick="savePricing()">💾</div>
   </div>
   <div class="scroll-body">
     <div style="background:rgba(45,125,210,.08);border:1px solid rgba(45,125,210,.25);border-radius:8px;padding:11px 13px;margin-bottom:14px;font-size:.8rem;color:var(--muted);line-height:1.6">
-      Enter your <strong style="color:var(--text)">customer-facing prices</strong> per category. Material cost breakdowns stay on your side only. Labor is entered fresh per job during proposal creation.
+      Set your default <strong style="color:var(--text)">material prices per product</strong>. These pre-fill when building a proposal — you can always override per job. Labor is entered per job only.
     </div>
 
-    <!-- SHINGLES -->
-    <div class="card">
-      <div class="card-header"><h3>🏠 Shingles <span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:6px">$ per square (100 SF)</span></h3></div>
-      <div class="card-body">
-        <div class="inp-row">
-          <div class="field"><label>3-Tab</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-shingle-3tab" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-          <div class="field"><label>Architectural</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-shingle-arch" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-        </div>
-        <div class="field"><label>Luxury / Designer</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-shingle-luxury" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-      </div>
-    </div>
-
-    <!-- METAL PANELS -->
-    <div class="card">
-      <div class="card-header"><h3>🔩 Metal Panels <span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:6px">$ per square (100 SF)</span></h3></div>
-      <div class="card-body">
-        <div class="inp-row">
-          <div class="field"><label>AG Panel</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-ag" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-          <div class="field"><label>PBR Panel</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-pbr" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-        </div>
-        <div class="inp-row">
-          <div class="field"><label>Standing Seam 16"</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-ss16" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-          <div class="field"><label>Standing Seam 17"</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-metal-ss17" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- FLAT / MEMBRANE -->
-    <div class="card">
-      <div class="card-header"><h3>🌊 Flat / Membrane <span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:6px">$ per square (100 SF)</span></h3></div>
-      <div class="card-body">
-        <div class="inp-row">
-          <div class="field"><label>TPO</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-flat-tpo" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-          <div class="field"><label>PVC</label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-flat-pvc" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-        </div>
-      </div>
-    </div>
+    <!-- PRODUCT PRICE LIST — rendered by JS -->
+    <div id="pricing-products-list"></div>
 
     <!-- ACCESSORIES & TRIM -->
     <div class="card">
@@ -542,24 +508,7 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       </div>
     </div>
 
-    <!-- PRODUCT LIBRARY PREVIEW -->
-    <div class="card">
-      <div class="card-header"><h3>🎨 Product Library</h3></div>
-      <div class="card-body">
-        <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.6">Products and color swatches available for customer proposals. Photos coming soon.</div>
-        <!-- Shingle Products -->
-        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:8px">Shingles</div>
-        <div id="lib-shingles" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
-        <!-- Metal Products -->
-        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:8px">Metal Panels</div>
-        <div id="lib-metal" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
-        <!-- Flat Products -->
-        <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:700;margin-bottom:8px">Flat / Membrane</div>
-        <div id="lib-flat" style="display:flex;flex-direction:column;gap:8px"></div>
-      </div>
-    </div>
-
-    <button class="btn btn-accent" onclick="savePricing()" style="margin-bottom:20px">💾 Save Pricing</button>
+    <button class="btn btn-accent" onclick="savePricing()" style="margin-bottom:20px">💾 Save All Pricing</button>
   </div>
 </div>
 
@@ -4363,41 +4312,49 @@ async function loadPricing(){
 
 function showPricing(){
   showScreen('pricing');
-  // Populate fields
-  const fields = ['shingle-3tab','shingle-arch','shingle-luxury',
-    'metal-ag','metal-pbr','metal-ss16','metal-ss17',
-    'flat-tpo','flat-pvc',
-    'trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
-  fields.forEach(f=>{
+  renderPricingProducts();
+  // Populate accessory fields
+  const accFields = ['trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
+  accFields.forEach(f=>{
     const el = document.getElementById('pr-'+f);
-    if(el && _pricing[f]) el.value = _pricing[f];
+    if(el) el.value = _pricing[f]||'';
   });
-  renderProductLibrary();
 }
 
-function renderProductLibrary(){
-  renderLibSection('lib-shingles', PRODUCT_LIBRARY.shingles);
-  renderLibSection('lib-metal', PRODUCT_LIBRARY.metal);
-  renderLibSection('lib-flat', PRODUCT_LIBRARY.flat);
-}
-
-function renderLibSection(containerId, products){
-  const el = document.getElementById(containerId);
-  if(!el)return;
-  el.innerHTML = products.map(p=>`
-    <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:.88rem">${p.brand?p.brand+' — ':''}${p.name}</div>
-          <div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">${p.type}</div>
-        </div>
-        <div style="font-size:.65rem;color:var(--dim)">${p.colors.length} colors</div>
+function renderPricingProducts(){
+  const container = document.getElementById('pricing-products-list');
+  if(!container)return;
+  const sections = [
+    {label:'🏠 Shingles', unit:'$ / sq', products: PRODUCT_LIBRARY.shingles},
+    {label:'🔩 Metal Panels', unit:'$ / sq', products: PRODUCT_LIBRARY.metal},
+    {label:'🌊 Flat / Membrane', unit:'$ / sq', products: PRODUCT_LIBRARY.flat}
+  ];
+  container.innerHTML = sections.map(sec=>`
+    <div class="card">
+      <div class="card-header">
+        <h3>${sec.label} <span style="font-size:.7rem;color:var(--muted);font-weight:400;margin-left:6px">${sec.unit} (100 SF)</span></h3>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${p.colors.map(c=>`
-          <div title="${c.name}" style="display:flex;flex-direction:column;align-items:center;gap:3px;width:44px">
-            <div style="width:36px;height:36px;border-radius:6px;background:${c.hex};border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)"></div>
-            <div style="font-size:.52rem;color:var(--muted);text-align:center;line-height:1.2;word-break:break-word">${c.name}</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+        ${sec.products.map(p=>`
+          <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
+            <div style="background:var(--bg);padding:10px 12px;display:flex;align-items:center;gap:10px">
+              <div style="flex:1">
+                <div style="font-weight:700;font-size:.9rem">${p.brand?`<span style="color:var(--accent)">${p.brand}</span> — `:''}${p.name}</div>
+                <div style="font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px">${p.type}</div>
+              </div>
+              <div style="position:relative;width:110px;flex-shrink:0">
+                <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span>
+                <input class="inp" id="pr-prod-${p.id}" type="number" min="0" step="0.01" placeholder="0.00"
+                  style="padding-left:22px;text-align:right;padding-right:8px" value="${_pricing['prod_'+p.id]||''}"/>
+              </div>
+            </div>
+            <div style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:5px;border-top:1px solid var(--border)">
+              ${p.colors.map(c=>`
+                <div title="${c.name}" style="display:flex;flex-direction:column;align-items:center;gap:2px;width:40px">
+                  <div style="width:32px;height:32px;border-radius:5px;background:${c.hex};border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)"></div>
+                  <div style="font-size:.5rem;color:var(--muted);text-align:center;line-height:1.2">${c.name}</div>
+                </div>`).join('')}
+            </div>
           </div>`).join('')}
       </div>
     </div>`).join('');
@@ -4406,12 +4363,16 @@ function renderLibSection(containerId, products){
 async function savePricing(){
   const ref = pricingRef();
   if(!ref){showToast('Not connected','error');return;}
-  const fields = ['shingle-3tab','shingle-arch','shingle-luxury',
-    'metal-ag','metal-pbr','metal-ss16','metal-ss17',
-    'flat-tpo','flat-pvc',
-    'trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
   const data = {updatedAt: new Date().toISOString()};
-  fields.forEach(f=>{
+  // Save per-product prices
+  const allProducts = [...PRODUCT_LIBRARY.shingles,...PRODUCT_LIBRARY.metal,...PRODUCT_LIBRARY.flat];
+  allProducts.forEach(p=>{
+    const el = document.getElementById('pr-prod-'+p.id);
+    if(el) data['prod_'+p.id] = parseFloat(el.value)||0;
+  });
+  // Save accessory prices
+  const accFields = ['trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
+  accFields.forEach(f=>{
     const el = document.getElementById('pr-'+f);
     if(el) data[f] = parseFloat(el.value)||0;
   });
@@ -4419,7 +4380,7 @@ async function savePricing(){
     await ref.set(data);
     _pricing = data;
     const sum = document.getElementById('pricingSettingsSummary');
-    if(sum) sum.innerHTML = `<strong style="color:var(--green)">✓ Prices saved</strong> — <span style="font-size:.75rem">Last updated ${new Date().toLocaleDateString()}</span>`;
+    if(sum) sum.innerHTML = `<strong style="color:var(--green)">✓ Prices saved</strong> · <span style="font-size:.75rem">Last updated ${new Date().toLocaleDateString()}</span>`;
     showToast('Pricing saved!','success');
     showScreen('settings');renderSettings();
   }catch(e){showToast('Error saving: '+e.message,'error');}
