@@ -2736,24 +2736,39 @@ function applyPropTemplate(idx){
 
 // ══ SHAREABLE PROPOSAL — CONTRACTOR SIDE ══
 function getColorsForJob(j){
-  // Returns [{name,hex}] based on job's primary roof type
+  // Returns [{name,hex}] based on job type.
+  // j.shingleBrand is the strongest signal — sections default to 'ag' so we
+  // can't rely on section counting for shingle jobs.
+  const brandToId={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage',gaf3tab:'gaf-3tab'};
+  const allProds=[...(PRODUCT_LIBRARY.shingles||[]),...(PRODUCT_LIBRARY.metal||[]),...(PRODUCT_LIBRARY.flat||[])];
+
+  // 1. Shingle brand set on job → use that brand's color palette
+  if(j.shingleBrand){
+    const pid=brandToId[j.shingleBrand];
+    const prod=pid?allProds.find(p=>p.id===pid):null;
+    if(prod&&prod.colors&&prod.colors.length)return prod.colors;
+  }
+
+  // 2. Fall back to section-type counting for metal / flat jobs
   const sections=j.sections||[];
   const types={};
-  sections.forEach(s=>{const t=secType(s);types[t]=(types[t]||0)+1;});
+  sections.forEach(s=>{const t=secType(s);if(t!=='ag'||s.roofType)types[t]=(types[t]||0)+1;});
   const primary=Object.entries(types).sort((a,b)=>b[1]-a[1])[0];
-  if(!primary)return[];
-  const type=primary[0];
-  if(type==='shingle'){
-    const brandToId={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage',gaf3tab:'gaf-3tab'};
-    const pid=brandToId[j.shingleBrand];
-    const all=[...(PRODUCT_LIBRARY.shingles||[]),...(PRODUCT_LIBRARY.metal||[]),...(PRODUCT_LIBRARY.flat||[])];
-    const prod=pid?all.find(p=>p.id===pid):null;
-    return prod?prod.colors:[];
+  if(primary){
+    const type=primary[0];
+    if(type==='shingle'){
+      const pid=brandToId[j.shingleBrand];
+      const prod=pid?allProds.find(p=>p.id===pid):null;
+      if(prod&&prod.colors&&prod.colors.length)return prod.colors;
+    }
+    if(['ag','pbr','ss16','ss17'].includes(type)){
+      return METAL_COLORS.map(n=>({name:n,hex:''}));
+    }
   }
-  // Metal — use METAL_COLORS as name-only swatches
-  if(['ag','pbr','ss16','ss17'].includes(type)){
-    return METAL_COLORS.map(n=>({name:n,hex:''}));
-  }
+
+  // 3. If no brand and no typed sections, check metalColor on job
+  if(j.metalColor){return METAL_COLORS.map(n=>({name:n,hex:''}));}
+
   return[];
 }
 
