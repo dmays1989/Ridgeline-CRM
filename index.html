@@ -462,6 +462,10 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       <div id="pricingSettingsSummary" style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Set your material prices per category. Labor is entered per job during proposal creation.</div>
       <button class="btn btn-blue" onclick="showPricing()">💲 Edit Pricing Setup</button>
     </div></div>
+    <div class="card"><div class="card-header"><h3>📋 Proposal Templates</h3></div><div class="card-body">
+      <div id="propTemplatesSummary" style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Create reusable scope-of-work templates for your proposals.</div>
+      <button class="btn" style="background:var(--blue);color:#fff;border:none" onclick="showPropTemplates()">📋 Manage Templates</button>
+    </div></div>
     <div class="card"><div class="card-header"><h3>👤 Account</h3></div><div class="card-body">
       <div id="settingsUserInfo" style="font-size:.85rem;color:var(--muted);margin-bottom:8px"></div>
       <div id="settingsCompanyCode" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px">
@@ -727,6 +731,10 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
         <div class="field"><label>Proposal Notes / Fine Print</label>
           <textarea class="inp" id="cpNotes" rows="3" placeholder="e.g. Price includes materials and labor. Does not include structural repairs..."></textarea>
         </div>
+        <div class="field" style="margin-bottom:0"><label>Legal / Acceptance Language</label>
+          <div style="font-size:.7rem;color:var(--muted);margin-bottom:6px">Shown at the bottom of every proposal under "Acceptance of Proposal". Set it once, applies to all jobs.</div>
+          <textarea class="inp" id="cpBoilerplate" rows="5" placeholder="e.g. The above prices, specifications and conditions are satisfactory and are hereby accepted. You are authorized to do the work as specified..."></textarea>
+        </div>
       </div>
     </div>
 
@@ -739,6 +747,20 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
     </div>
 
     <button class="btn btn-accent" onclick="saveCompanyProfile()" style="margin-bottom:16px">💾 Save Company Profile</button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: PROPOSAL TEMPLATES ═══ -->
+<div class="screen hidden" id="screen-prop-templates">
+  <div class="topbar">
+    <div class="icon-btn" onclick="showScreen('settings');renderSettings()">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+    </div>
+    <div class="topbar-title" style="flex:1">PROPOSAL TEMPLATES</div>
+    <div class="icon-btn accent" onclick="openPropTemplateEdit(-1)" style="font-size:1.2rem">+</div>
+  </div>
+  <div class="scroll-body" id="propTemplatesBody">
+    <div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:.9rem">No templates yet — tap + to add your first.</div>
   </div>
 </div>
 
@@ -838,6 +860,42 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
   </div>
 </div>
 
+<!-- Proposal Template Edit -->
+<div class="modal-overlay hidden" id="modal-prop-template-edit">
+  <div style="flex:1" onclick="closeModal('prop-template-edit')"></div>
+  <div class="modal-sheet" style="max-height:88vh">
+    <div class="modal-drag"></div>
+    <div class="modal-header"><h3 id="propTemplateEditTitle">📋 New Template</h3></div>
+    <div class="modal-body" style="overflow-y:auto;max-height:calc(88vh - 130px)">
+      <div class="field">
+        <label>Template Name</label>
+        <input class="inp" id="ptName" type="text" placeholder="e.g. Metal Roof Standard, Shingle Replacement…"/>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Scope of Work Text</label>
+        <textarea class="inp" id="ptText" rows="10" placeholder="Enter the full scope text that will fill in when this template is applied…" style="font-size:.88rem;line-height:1.6"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('prop-template-edit')">Cancel</button>
+      <button class="btn btn-accent" onclick="savePropTemplate()">Save Template</button>
+    </div>
+  </div>
+</div>
+
+<!-- Proposal Template Picker -->
+<div class="modal-overlay hidden" id="modal-prop-template-picker">
+  <div style="flex:1" onclick="closeModal('prop-template-picker')"></div>
+  <div class="modal-sheet" style="max-height:75vh">
+    <div class="modal-drag"></div>
+    <div class="modal-header"><h3>📋 Pick a Template</h3></div>
+    <div class="modal-body" style="overflow-y:auto;max-height:calc(75vh - 110px)" id="propTemplatePickerList">
+      <div style="text-align:center;color:var(--muted);padding:20px">No templates yet.</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('prop-template-picker')">Cancel</button></div>
+  </div>
+</div>
+
 <!-- Proposal Setup -->
 <div class="modal-overlay hidden" id="modal-proposal-setup">
   <div style="flex:1" onclick="closeModal('proposal-setup')"></div>
@@ -916,6 +974,13 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
               <span style="color:var(--muted);font-size:.78rem">+ $</span>
               <input class="inp" id="propTier_good_add" type="number" min="0" step="0.01" placeholder="Additional (flat)" oninput="updatePropTotals()" style="flex:1;padding:8px 10px;font-size:.82rem"/>
             </div>
+            <div style="margin-top:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <span style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600">Scope of Work</span>
+                <button type="button" onclick="openTemplatePicker('propTier_good_scope')" style="background:rgba(45,125,210,.15);border:1px solid rgba(45,125,210,.3);color:var(--blue);border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;font-weight:600">📋 Template</button>
+              </div>
+              <textarea class="inp" id="propTier_good_scope" rows="2" placeholder="Scope for Good option…" style="font-size:.82rem;line-height:1.5"></textarea>
+            </div>
           </div>
         </div>
         <!-- BETTER -->
@@ -939,6 +1004,13 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
               <span style="color:var(--muted);font-size:.78rem">+ $</span>
               <input class="inp" id="propTier_better_add" type="number" min="0" step="0.01" placeholder="Additional (flat)" oninput="updatePropTotals()" style="flex:1;padding:8px 10px;font-size:.82rem"/>
             </div>
+            <div style="margin-top:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <span style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600">Scope of Work</span>
+                <button type="button" onclick="openTemplatePicker('propTier_better_scope')" style="background:rgba(45,125,210,.15);border:1px solid rgba(45,125,210,.3);color:var(--blue);border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;font-weight:600">📋 Template</button>
+              </div>
+              <textarea class="inp" id="propTier_better_scope" rows="2" placeholder="Scope for Better option…" style="font-size:.82rem;line-height:1.5"></textarea>
+            </div>
           </div>
         </div>
         <!-- BEST -->
@@ -959,13 +1031,23 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
               <span style="color:var(--muted);font-size:.78rem">+ $</span>
               <input class="inp" id="propTier_best_add" type="number" min="0" step="0.01" placeholder="Additional (flat)" oninput="updatePropTotals()" style="flex:1;padding:8px 10px;font-size:.82rem"/>
             </div>
+            <div style="margin-top:8px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                <span style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600">Scope of Work</span>
+                <button type="button" onclick="openTemplatePicker('propTier_best_scope')" style="background:rgba(45,125,210,.15);border:1px solid rgba(45,125,210,.3);color:var(--blue);border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;font-weight:600">📋 Template</button>
+              </div>
+              <textarea class="inp" id="propTier_best_scope" rows="2" placeholder="Scope for Best option…" style="font-size:.82rem;line-height:1.5"></textarea>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Scope of work (shared for both modes) -->
+      <!-- Scope of work (single mode) -->
       <div class="field">
-        <label>Scope of Work</label>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <label style="margin-bottom:0">Scope of Work</label>
+          <button type="button" onclick="openTemplatePicker('propScopeNotes')" style="background:rgba(45,125,210,.15);border:1px solid rgba(45,125,210,.3);color:var(--blue);border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;font-weight:600">📋 Use Template</button>
+        </div>
         <textarea class="inp" id="propScopeNotes" rows="3" placeholder="Describe the work for the customer…"></textarea>
       </div>
     </div>
@@ -2483,6 +2565,7 @@ function openProposalSetup(){
       document.getElementById('propTier_'+level+'_mat').value=tier.materialPerSq!==undefined?tier.materialPerSq:(level==='better'?defaultMat:'');
       document.getElementById('propTier_'+level+'_lab').value=tier.laborPerSq!==undefined?tier.laborPerSq:(level==='better'?defaultLab:'');
       document.getElementById('propTier_'+level+'_add').value=tier.additionalCharges||'';
+      document.getElementById('propTier_'+level+'_scope').value=tier.scopeNotes||'';
     });
   }
   updatePropTotals();
@@ -2511,6 +2594,115 @@ function updatePropTotals(){
   }
 }
 function updatePropTotal(){updatePropTotals();}// alias
+
+// ══ PROPOSAL TEMPLATES ══
+let _propTemplates=[];
+let _propTemplateEditIdx=-1;
+let _propTemplatePicker_target='propScopeNotes';
+
+function propTemplatesRef(){
+  if(!fbDb||!_companyCode)return null;
+  return fbDb.collection('companies').doc(_companyCode).collection('settings').doc('proposalTemplates');
+}
+
+async function loadPropTemplates(){
+  const ref=propTemplatesRef();if(!ref)return;
+  try{
+    const snap=await ref.get();
+    if(snap.exists)_propTemplates=snap.data().templates||[];
+    // Update settings summary
+    const sum=document.getElementById('propTemplatesSummary');
+    if(sum&&_propTemplates.length)sum.textContent=_propTemplates.length+' template'+(  _propTemplates.length!==1?'s':'')+' saved.';
+  }catch(e){console.error('loadPropTemplates:',e);}
+}
+
+async function savePropTemplatesToFirestore(){
+  const ref=propTemplatesRef();if(!ref)return;
+  try{await ref.set({templates:_propTemplates});}catch(e){console.error('savePropTemplates:',e);}
+}
+
+function showPropTemplates(){
+  showScreen('prop-templates');
+  renderPropTemplates();
+}
+
+function renderPropTemplates(){
+  const body=document.getElementById('propTemplatesBody');
+  if(!_propTemplates.length){
+    body.innerHTML='<div style="text-align:center;color:var(--muted);padding:40px 20px;font-size:.9rem">No templates yet — tap + above to create your first.</div>';
+    return;
+  }
+  body.innerHTML=_propTemplates.map((t,i)=>`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="flex:1;font-weight:700;font-size:.95rem">${t.name}</div>
+        <button onclick="openPropTemplateEdit(${i})" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:.82rem;padding:4px 6px">Edit</button>
+        <button onclick="deletePropTemplate(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.82rem;padding:4px 6px">Delete</button>
+      </div>
+      <div style="font-size:.8rem;color:var(--muted);line-height:1.5;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical">${t.text.replace(/</g,'&lt;')}</div>
+    </div>`).join('');
+}
+
+function openPropTemplateEdit(idx){
+  _propTemplateEditIdx=idx;
+  const t=idx>=0?_propTemplates[idx]:{name:'',text:''};
+  document.getElementById('propTemplateEditTitle').textContent=idx>=0?'📋 Edit Template':'📋 New Template';
+  document.getElementById('ptName').value=t.name||'';
+  document.getElementById('ptText').value=t.text||'';
+  openModal('prop-template-edit');
+  setTimeout(()=>document.getElementById('ptName').focus(),300);
+}
+
+async function savePropTemplate(){
+  const name=document.getElementById('ptName').value.trim();
+  const text=document.getElementById('ptText').value.trim();
+  if(!name){showToast('Enter a template name','error');return;}
+  if(!text){showToast('Enter scope text','error');return;}
+  const entry={id:Date.now()+'',name,text};
+  if(_propTemplateEditIdx>=0){
+    _propTemplates[_propTemplateEditIdx]=entry;
+  } else {
+    _propTemplates.push(entry);
+  }
+  await savePropTemplatesToFirestore();
+  closeModal('prop-template-edit');
+  renderPropTemplates();
+  const sum=document.getElementById('propTemplatesSummary');
+  if(sum)sum.textContent=_propTemplates.length+' template'+(_propTemplates.length!==1?'s':'')+' saved.';
+  showToast('Template saved!','success');
+}
+
+async function deletePropTemplate(idx){
+  _propTemplates.splice(idx,1);
+  await savePropTemplatesToFirestore();
+  renderPropTemplates();
+  const sum=document.getElementById('propTemplatesSummary');
+  if(sum)sum.textContent=_propTemplates.length?_propTemplates.length+' template'+(_propTemplates.length!==1?'s':'')+' saved.':'Create reusable scope-of-work templates for your proposals.';
+  showToast('Template deleted');
+}
+
+function openTemplatePicker(targetId){
+  _propTemplatePicker_target=targetId;
+  const list=document.getElementById('propTemplatePickerList');
+  if(!_propTemplates.length){
+    list.innerHTML='<div style="text-align:center;color:var(--muted);padding:24px;font-size:.88rem">No templates yet.<br><br>Go to <strong>Settings → Proposal Templates</strong> to create some.</div>';
+  } else {
+    list.innerHTML=_propTemplates.map((t,i)=>`
+      <div onclick="applyPropTemplate(${i})" style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;cursor:pointer;active:opacity:.7">
+        <div style="font-weight:700;font-size:.9rem;margin-bottom:4px">${t.name}</div>
+        <div style="font-size:.75rem;color:var(--muted);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${t.text.replace(/</g,'&lt;')}</div>
+      </div>`).join('');
+  }
+  openModal('prop-template-picker');
+}
+
+function applyPropTemplate(idx){
+  const t=_propTemplates[idx];if(!t)return;
+  const el=document.getElementById(_propTemplatePicker_target);
+  if(el){el.value=t.text;el.dispatchEvent(new Event('input'));}
+  closeModal('prop-template-picker');
+  showToast('Template applied');
+}
 
 function saveProposalSetup(){
   const j=CJ();if(!j)return;
@@ -2545,6 +2737,7 @@ function saveProposalSetup(){
         productDesc:document.getElementById('propTier_'+level+'_productDesc').value.trim(),
         materialPerSq:mat,laborPerSq:lab,
         additionalCharges:add,
+        scopeNotes:document.getElementById('propTier_'+level+'_scope').value.trim(),
         grandTotal:rnd(mat*sq+lab*sq+add)
       };
     });
@@ -2656,7 +2849,8 @@ function renderProposalScreen(){
       return`<div style="border:2px solid ${tc.border};border-radius:10px;padding:14px 12px;margin-bottom:8px;position:relative;background:${tc.bg}">
         ${tc.popular?`<div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:${tc.badgeBg};color:${tc.badgeColor};padding:3px 12px;border-radius:20px;font-size:.62rem;font-weight:700;white-space:nowrap">⭐ MOST POPULAR</div>`:''}
         <div style="display:inline-block;padding:3px 10px;border-radius:20px;background:${tc.badgeBg};font-size:.63rem;font-weight:700;color:${tc.badgeColor};margin-bottom:${tc.popular?'14px':'8px'}">${tc.label}</div>
-        ${t.productDesc?`<div style="font-size:.88rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">${t.productDesc}</div>`:''}
+        ${t.productDesc?`<div style="font-size:.88rem;font-weight:700;color:#1a1a1a;margin-bottom:4px">${t.productDesc}</div>`:''}
+        ${t.scopeNotes?`<div style="font-size:.78rem;color:#666;line-height:1.5;margin-bottom:8px;white-space:pre-wrap">${t.scopeNotes.replace(/</g,'&lt;')}</div>`:''}
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:800;color:${tc.priceColor};line-height:1">${fmt(price)}</div>
       </div>`;
     }).join('');
@@ -2677,20 +2871,31 @@ function renderProposalScreen(){
   }
 
   // ── Scope, terms, footer ──
-  const scopeSection=p.scopeNotes||p.productDesc?`<div style="padding:16px;border-bottom:1px solid #ebebeb">
-    <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">SCOPE OF WORK</div>
-    ${p.productDesc&&p.mode!=='tiered'?`<div style="font-size:.95rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">${p.productDesc}</div>`:''}
-    ${p.scopeNotes?`<div style="font-size:.86rem;color:#444;line-height:1.65;white-space:pre-wrap">${p.scopeNotes.replace(/</g,'&lt;')}</div>`:''}
-    ${p.additionalCharges&&p.additionalDesc&&p.mode!=='tiered'?`<div style="margin-top:7px;font-size:.84rem;color:#444">• ${p.additionalDesc}</div>`:''}
-  </div>`:'';
+  // Scope section — per-tier in tiered mode, shared in single mode
+  let scopeSection='';
+  if(p.mode==='tiered'){
+    // Scope shown inside each tier card (handled in pricingSection), skip here
+    scopeSection='';
+  } else {
+    scopeSection=(p.scopeNotes||p.productDesc)?`<div style="padding:16px;border-bottom:1px solid #ebebeb">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">SCOPE OF WORK</div>
+      ${p.productDesc?`<div style="font-size:.95rem;font-weight:700;color:#1a1a1a;margin-bottom:6px">${p.productDesc}</div>`:''}
+      ${p.scopeNotes?`<div style="font-size:.86rem;color:#444;line-height:1.65;white-space:pre-wrap">${p.scopeNotes.replace(/</g,'&lt;')}</div>`:''}
+      ${p.additionalCharges&&p.additionalDesc?`<div style="margin-top:7px;font-size:.84rem;color:#444">• ${p.additionalDesc}</div>`:''}
+    </div>`:'';
+  }
   const termsSection=cp.payTerms?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb"><div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:4px">PAYMENT TERMS</div><div style="font-size:.83rem;color:#444">${cp.payTerms}</div></div>`:'';
   const notesSection=cp.notes?`<div style="padding:12px 16px;border-bottom:1px solid #ebebeb;background:#fafafa"><div style="font-size:.74rem;color:#888;line-height:1.6">${cp.notes}</div></div>`:'';
+  const boilerplateSection=cp.boilerplate?`<div style="padding:14px 16px;border-bottom:1px solid #ebebeb">
+    <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:8px">ACCEPTANCE OF PROPOSAL</div>
+    <div style="font-size:.8rem;color:#555;line-height:1.7;white-space:pre-wrap">${cp.boilerplate}</div>
+  </div>`:'';
   const footerSection=`<div style="padding:10px 16px;display:flex;justify-content:space-between;align-items:center;background:#f5f5f5">${cp.license?`<span style="font-size:.68rem;color:#aaa">Lic: ${cp.license}</span>`:'<span></span>'}<span style="font-size:.65rem;color:#ccc">Powered by Ridgeline</span></div>`;
 
   const customerView=`
     <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:8px;text-align:center">▼ Customer View</div>
     <div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.35)">
-      ${proposalHeader}${scopeSection}${pricingSection}${termsSection}${notesSection}${footerSection}
+      ${proposalHeader}${scopeSection}${pricingSection}${termsSection}${notesSection}${boilerplateSection}${footerSection}
     </div>`;
 
   body.innerHTML=contractorSection+customerView+`
@@ -3770,6 +3975,7 @@ function onUserReady(){
     loadPricing();
     loadPipelineStages();
     loadCompanyProfile();
+    loadPropTemplates();
     listenNotifications();
     listenSchedules();
     renderJobList();
@@ -4754,6 +4960,7 @@ function showCompanyProfile(){
     document.getElementById('cpValidity').value = cp.validity||30;
     document.getElementById('cpPayTerms').value = cp.payTerms||'';
     document.getElementById('cpNotes').value = cp.notes||'';
+    document.getElementById('cpBoilerplate').value = cp.boilerplate||'';
     if(cp.brandColor){
       document.getElementById('brandColor').value = cp.brandColor;
       document.getElementById('brandColorLabel').textContent = cp.brandColor;
@@ -4851,6 +5058,7 @@ async function saveCompanyProfile(){
     validity: +document.getElementById('cpValidity').value||30,
     payTerms: document.getElementById('cpPayTerms').value.trim(),
     notes: document.getElementById('cpNotes').value.trim(),
+    boilerplate: document.getElementById('cpBoilerplate').value.trim(),
     brandColor: document.getElementById('brandColor').value,
     logo: _cpLogoBase64||'',
     updatedAt: new Date().toISOString()
