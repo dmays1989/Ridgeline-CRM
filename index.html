@@ -380,6 +380,10 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Totals
     </div>
+    <div class="nav-item" onclick="showJobTab('notes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Notes
+    </div>
   </div>
 </div>
 
@@ -1578,11 +1582,12 @@ function renderJob(){
   document.getElementById('jdTitle').textContent=j.name.toUpperCase();
   document.getElementById('jdSub').textContent=`${(j.sections||[]).length} sections · ${j.address?j.address.split('\n')[0]:''}${j.gauge?' · '+j.gauge+' ga':' · tap Totals to set gauge'}`;
   const navs=document.querySelectorAll('#jdNav .nav-item');
-  ['sections','trims','accessories','summary'].forEach((t,i)=>navs[i].classList.toggle('active',t===curTab));
+  ['sections','trims','accessories','summary','notes'].forEach((t,i)=>navs[i].classList.toggle('active',t===curTab));
   const body=document.getElementById('jdBody');
   if(curTab==='sections')renderSecTab(body);
   else if(curTab==='trims')renderTrimTab(body);
   else if(curTab==='accessories')renderAccTab2(body);
+  else if(curTab==='notes')renderNotesTab(body);
   else renderSummaryTab(body);
   setTimeout(applyReadOnly,0);
 }
@@ -2157,6 +2162,93 @@ function renderSummaryTab(body){
   <button class="btn btn-outline" onclick="openScheduleModal(curJob)" style="border-color:var(--blue);color:var(--blue)">📅 Schedule This Job</button>
   <div style="height:8px"></div>
   <button class="btn btn-outline" onclick="deleteJobConfirm()">🗑 Delete Job</button>`;
+}
+
+// ══ NOTES / CONTACT LOG ══
+const NOTE_TYPES=[
+  {id:'note',   label:'Note',    icon:'📝', color:'var(--muted)'},
+  {id:'call',   label:'Call',    icon:'📞', color:'var(--green)'},
+  {id:'visit',  label:'Visit',   icon:'🏠', color:'var(--blue)'},
+  {id:'email',  label:'Email',   icon:'✉️',  color:'var(--accent)'},
+  {id:'text',   label:'Text',    icon:'💬', color:'#8b5cf6'},
+];
+let _noteType='note';
+
+function renderNotesTab(body){
+  const j=CJ();
+  const log=(j.contactLog||[]).slice().reverse();
+  const typeButtons=NOTE_TYPES.map(t=>`
+    <div onclick="selectNoteType('${t.id}')" id="nt-${t.id}" style="
+      display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:6px;cursor:pointer;
+      border:1.5px solid ${_noteType===t.id?t.color:'var(--border2)'};
+      background:${_noteType===t.id?t.color+'22':'transparent'};
+      color:${_noteType===t.id?t.color:'var(--muted)'};
+      font-size:.72rem;font-weight:700;letter-spacing:.3px;transition:all .15s">
+      ${t.icon} ${t.label}
+    </div>`).join('');
+
+  const logHTML=log.length===0
+    ?`<div style="text-align:center;color:var(--muted);padding:32px 0;font-size:.9rem">No notes yet — add the first one above</div>`
+    :log.map(e=>{
+      const nt=NOTE_TYPES.find(t=>t.id===e.type)||NOTE_TYPES[0];
+      const dt=new Date(e.createdAt);
+      const dateStr=dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      const timeStr=dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+      return`<div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:1rem">${nt.icon}</span>
+          <span style="font-size:.72rem;font-weight:700;color:${nt.color};text-transform:uppercase;letter-spacing:.5px">${nt.label}</span>
+          <span style="flex:1"></span>
+          <span style="font-size:.68rem;color:var(--muted)">${dateStr} · ${timeStr}</span>
+          <button onclick="deleteContactLogEntry('${e.id}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:.85rem;padding:0 0 0 6px;line-height:1">✕</button>
+        </div>
+        <div style="font-size:.9rem;color:var(--text);line-height:1.5;white-space:pre-wrap">${e.text.replace(/</g,'&lt;')}</div>
+        ${e.createdBy?`<div style="font-size:.65rem;color:var(--dim);margin-top:5px">${e.createdBy}</div>`:''}
+      </div>`;
+    }).join('');
+
+  body.innerHTML=`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:.63rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:10px">Add Entry</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${typeButtons}</div>
+      <textarea id="noteText" class="inp" rows="3" placeholder="What happened?" style="resize:none;margin-bottom:10px;font-size:.9rem"></textarea>
+      <button onclick="addContactLogEntry()" class="btn" style="background:var(--accent);color:#fff;border:none;padding:12px;font-size:.85rem">+ Log Entry</button>
+    </div>
+    ${logHTML}`;
+}
+
+function selectNoteType(id){
+  _noteType=id;
+  renderNotesTab(document.getElementById('jdBody'));
+  setTimeout(()=>document.getElementById('noteText').focus(),50);
+}
+
+function addContactLogEntry(){
+  const text=document.getElementById('noteText').value.trim();
+  if(!text){showToast('Enter a note first','error');return;}
+  const j=CJ();
+  if(!j.contactLog)j.contactLog=[];
+  const entry={
+    id:Date.now()+'',
+    type:_noteType,
+    text,
+    createdAt:new Date().toISOString(),
+    createdBy:(_userProfile&&_userProfile.name)||(_userProfile&&_userProfile.email)||''
+  };
+  j.contactLog.push(entry);
+  save(JOBS_KEY,jobs);
+  if(fbUser)saveJobToFirestore(j).catch(e=>console.error(e));
+  showToast('Entry logged','success');
+  renderNotesTab(document.getElementById('jdBody'));
+}
+
+function deleteContactLogEntry(entryId){
+  const j=CJ();
+  if(!j.contactLog)return;
+  j.contactLog=j.contactLog.filter(e=>e.id!==entryId);
+  save(JOBS_KEY,jobs);
+  if(fbUser)saveJobToFirestore(j).catch(e=>console.error(e));
+  renderNotesTab(document.getElementById('jdBody'));
 }
 
 function openNewJobModal(){
