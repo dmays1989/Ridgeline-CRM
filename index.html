@@ -1078,6 +1078,23 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
         <textarea class="inp" id="propScopeNotes" rows="3" placeholder="Describe the work for the customer…"></textarea>
       </div>
     </div>
+    <!-- Color palette the customer can choose from -->
+    <div style="padding:0 16px 14px">
+      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;margin-bottom:6px">Customer Color Selection</div>
+      <select class="inp" id="propColorPalette" style="font-size:.88rem">
+        <option value="none">— No color selection —</option>
+        <optgroup label="Shingles">
+          <option value="gaf-hdz">GAF Timberline HDZ</option>
+          <option value="oc-duration">Owens Corning Duration</option>
+          <option value="ct-landmark">CertainTeed Landmark</option>
+          <option value="tamko-heritage">TAMKO Heritage</option>
+          <option value="gaf-3tab">GAF Royal Sovereign (3-Tab)</option>
+        </optgroup>
+        <optgroup label="Metal">
+          <option value="metal">Metal Panels</option>
+        </optgroup>
+      </select>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('proposal-setup')">Cancel</button>
       <button class="btn btn-accent" onclick="saveProposalSetup()">Preview ›</button>
@@ -2599,6 +2616,10 @@ function openProposalSetup(){
     });
   }
   updatePropTotals();
+  // Pre-select color palette: saved value → shingleBrand fallback → 'none'
+  const brandToPalette={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage'};
+  const defaultPalette=existing.colorPalette||(j.shingleBrand?brandToPalette[j.shingleBrand]||'none':'none');
+  document.getElementById('propColorPalette').value=defaultPalette;
   openModal('proposal-setup');
 }
 
@@ -2736,38 +2757,24 @@ function applyPropTemplate(idx){
 
 // ══ SHAREABLE PROPOSAL — CONTRACTOR SIDE ══
 function getColorsForJob(j){
-  // Returns [{name,hex}] based on job type.
-  // j.shingleBrand is the strongest signal — sections default to 'ag' so we
-  // can't rely on section counting for shingle jobs.
-  const brandToId={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage',gaf3tab:'gaf-3tab'};
+  // Returns [{name,hex}] based on proposal.colorPalette set by the contractor.
+  // Falls back to shingleBrand for legacy proposals that predate the palette field.
+  const p=j.proposal||{};
+  const palette=p.colorPalette;
   const allProds=[...(PRODUCT_LIBRARY.shingles||[]),...(PRODUCT_LIBRARY.metal||[]),...(PRODUCT_LIBRARY.flat||[])];
 
-  // 1. Shingle brand set on job → use that brand's color palette
-  if(j.shingleBrand){
-    const pid=brandToId[j.shingleBrand];
-    const prod=pid?allProds.find(p=>p.id===pid):null;
+  if(palette&&palette!=='none'){
+    if(palette==='metal')return METAL_COLORS.map(n=>({name:n,hex:''}));
+    const prod=allProds.find(pr=>pr.id===palette);
     if(prod&&prod.colors&&prod.colors.length)return prod.colors;
   }
 
-  // 2. Fall back to section-type counting for metal / flat jobs
-  const sections=j.sections||[];
-  const types={};
-  sections.forEach(s=>{const t=secType(s);if(t!=='ag'||s.roofType)types[t]=(types[t]||0)+1;});
-  const primary=Object.entries(types).sort((a,b)=>b[1]-a[1])[0];
-  if(primary){
-    const type=primary[0];
-    if(type==='shingle'){
-      const pid=brandToId[j.shingleBrand];
-      const prod=pid?allProds.find(p=>p.id===pid):null;
-      if(prod&&prod.colors&&prod.colors.length)return prod.colors;
-    }
-    if(['ag','pbr','ss16','ss17'].includes(type)){
-      return METAL_COLORS.map(n=>({name:n,hex:''}));
-    }
+  // Legacy fallback: use shingleBrand if colorPalette not yet set
+  if(j.shingleBrand){
+    const brandToId={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage'};
+    const prod=allProds.find(pr=>pr.id===(brandToId[j.shingleBrand]||''));
+    if(prod&&prod.colors&&prod.colors.length)return prod.colors;
   }
-
-  // 3. If no brand and no typed sections, check metalColor on job
-  if(j.metalColor){return METAL_COLORS.map(n=>({name:n,hex:''}));}
 
   return[];
 }
@@ -3090,6 +3097,7 @@ function saveProposalSetup(){
   let proposal={
     mode:_propMode,
     scopeNotes:document.getElementById('propScopeNotes').value.trim(),
+    colorPalette:document.getElementById('propColorPalette').value||'none',
     totalSq:sq,
     status:(j.proposal&&j.proposal.status)||'draft',
     createdAt:(j.proposal&&j.proposal.createdAt)||new Date().toISOString(),
