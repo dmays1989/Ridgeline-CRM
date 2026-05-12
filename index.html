@@ -489,21 +489,38 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
     <!-- PRODUCT PRICE LIST — rendered by JS -->
     <div id="pricing-products-list"></div>
 
-    <!-- ACCESSORIES & TRIM -->
+    <!-- ACCESSORIES — rendered by JS -->
+    <div id="pricing-accessories"></div>
+
+    <!-- CUSTOM ITEMS -->
     <div class="card">
-      <div class="card-header"><h3>🔧 Accessories &amp; Trim</h3></div>
+      <div class="card-header"><h3>➕ Custom Items</h3></div>
       <div class="card-body">
-        <div class="inp-row">
-          <div class="field"><label>Trim <span style="color:var(--dim)">$ / LF</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-trim-lf" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-          <div class="field"><label>Ridge Cap <span style="color:var(--dim)">$ / LF</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-ridge-lf" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-        </div>
-        <div class="inp-row">
-          <div class="field"><label>Ice &amp; Water <span style="color:var(--dim)">$ / sq</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-icewater" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-          <div class="field"><label>Underlayment <span style="color:var(--dim)">$ / sq</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-underlay" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-        </div>
-        <div class="inp-row">
-          <div class="field"><label>Gutters <span style="color:var(--dim)">$ / LF</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-gutters-lf" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
-          <div class="field"><label>Tear-Off <span style="color:var(--dim)">$ / sq</span></label><div style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span><input class="inp" id="pr-tearoff" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:24px"/></div></div>
+        <div id="pricing-custom-items" style="margin-bottom:12px"></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px">
+          <div style="font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px">Add Custom Item</div>
+          <div class="field"><label>Item Name</label>
+            <input class="inp" id="new-custom-name" type="text" placeholder="e.g. Hurricane Strapping"/>
+          </div>
+          <div class="inp-row">
+            <div class="field"><label>Unit</label>
+              <select class="inp" id="new-custom-unit">
+                <option value="each">Each</option>
+                <option value="LF">Per LF</option>
+                <option value="sq">Per Square</option>
+                <option value="roll">Per Roll</option>
+                <option value="bundle">Per Bundle</option>
+                <option value="sheet">Per Sheet</option>
+              </select>
+            </div>
+            <div class="field"><label>Default Price</label>
+              <div style="position:relative">
+                <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted)">$</span>
+                <input class="inp" id="new-custom-price" type="number" min="0" step="0.01" placeholder="0.00" style="padding-left:22px"/>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-blue" onclick="addCustomPricingItem()">➕ Add Item</button>
         </div>
       </div>
     </div>
@@ -4294,6 +4311,48 @@ const PRODUCT_LIBRARY = {
   ]
 };
 
+const ACCESSORY_SECTIONS = [
+  { label:'🔩 Metal Trim', items:[
+    {id:'mt-ridge',    name:'Ridge Cap',                      unit:'LF'},
+    {id:'mt-eave',     name:'Eave Trim / Drip Edge',          unit:'LF'},
+    {id:'mt-rake',     name:'Rake Trim',                      unit:'LF'},
+    {id:'mt-hip',      name:'Hip Cap',                        unit:'LF'},
+    {id:'mt-valley',   name:'Valley Trim',                    unit:'LF'},
+    {id:'mt-offset',   name:'Offset Cleats (Standing Seam)',  unit:'LF'},
+    {id:'mt-zflash',   name:'Z-Flashing',                    unit:'LF'},
+    {id:'mt-sidewall', name:'Sidewall Flashing',              unit:'LF'},
+    {id:'mt-endwall',  name:'Endwall Flashing',               unit:'LF'},
+    {id:'mt-headwall', name:'Headwall Flashing',              unit:'LF'},
+    {id:'mt-jchannel', name:'J-Channel',                      unit:'LF'},
+    {id:'mt-gutapron', name:'Gutter Apron',                   unit:'LF'}
+  ]},
+  { label:'🟧 Metal Closures', items:[
+    {id:'cl-in-vent',     name:'Inside Closure — Vented',      unit:'piece'},
+    {id:'cl-in-nonvent',  name:'Inside Closure — Non-Vented',  unit:'piece'},
+    {id:'cl-out-vent',    name:'Outside Closure — Vented',     unit:'piece'},
+    {id:'cl-out-nonvent', name:'Outside Closure — Non-Vented', unit:'piece'}
+  ]},
+  { label:'🔧 Metal Accessories', items:[
+    {id:'ma-emseal',    name:'Emseal',           unit:'roll (19\')'},
+    {id:'ma-butyl',     name:'Butyl Tape',        unit:'roll'},
+    {id:'ma-pipboot',   name:'Pipe Boot',         unit:'each'},
+    {id:'ma-offridge',  name:'Off-Ridge Vent',    unit:'each'},
+    {id:'ma-turtle',    name:'Turtle Back Vent',  unit:'each'},
+    {id:'ma-snowguard', name:'Snow Guards',       unit:'each'}
+  ]},
+  { label:'🏠 Shingle Trim', items:[
+    {id:'st-drip',    name:'Drip Edge',          unit:'LF'},
+    {id:'st-starter', name:'Starter Strip',      unit:'LF'},
+    {id:'st-ridge',   name:'Ridge Cap Shingles', unit:'LF'}
+  ]},
+  { label:'📦 Universal', items:[
+    {id:'un-icewater', name:'Ice & Water Shield', unit:'sq'},
+    {id:'un-underlay', name:'Underlayment',       unit:'sq'},
+    {id:'un-gutters',  name:'Gutters',            unit:'LF'},
+    {id:'un-tearoff',  name:'Tear-Off',           unit:'sq'}
+  ]}
+];
+
 function pricingRef(){
   if(!fbDb||!_companyCode)return null;
   return fbDb.collection('companies').doc(_companyCode).collection('settings').doc('pricing');
@@ -4313,12 +4372,7 @@ async function loadPricing(){
 function showPricing(){
   showScreen('pricing');
   renderPricingProducts();
-  // Populate accessory fields
-  const accFields = ['trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
-  accFields.forEach(f=>{
-    const el = document.getElementById('pr-'+f);
-    if(el) el.value = _pricing[f]||'';
-  });
+  renderPricingAccessories();
 }
 
 function renderPricingProducts(){
@@ -4360,22 +4414,95 @@ function renderPricingProducts(){
     </div>`).join('');
 }
 
+function renderPricingAccessories(){
+  const container = document.getElementById('pricing-accessories');
+  if(!container)return;
+  container.innerHTML = ACCESSORY_SECTIONS.map(sec=>`
+    <div class="card">
+      <div class="card-header"><h3>${sec.label}</h3></div>
+      <div class="card-body" style="padding:0">
+        ${sec.items.map((item,i)=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;${i<sec.items.length-1?'border-bottom:1px solid var(--border)':''}">
+            <div style="flex:1">
+              <div style="font-size:.88rem;font-weight:500">${item.name}</div>
+              <div style="font-size:.63rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:1px">$ / ${item.unit}</div>
+            </div>
+            <div style="position:relative;width:110px;flex-shrink:0">
+              <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span>
+              <input class="inp" id="acc-${item.id}" type="number" min="0" step="0.01" placeholder="0.00"
+                style="padding-left:22px;text-align:right;padding-right:8px" value="${_pricing['acc_'+item.id]||''}"/>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+  renderCustomPricingItems();
+}
+
+function renderCustomPricingItems(){
+  const container = document.getElementById('pricing-custom-items');
+  if(!container)return;
+  const customs = _pricing.customItems||[];
+  if(!customs.length){
+    container.innerHTML = '<div style="font-size:.8rem;color:var(--dim);text-align:center;padding:4px 0">No custom items yet</div>';
+    return;
+  }
+  container.innerHTML = customs.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 0;${i<customs.length-1?'border-bottom:1px solid var(--border)':''}">
+      <div style="flex:1">
+        <div style="font-size:.88rem;font-weight:500">${item.name}</div>
+        <div style="font-size:.63rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:1px">$ / ${item.unit}</div>
+      </div>
+      <div style="position:relative;width:100px;flex-shrink:0">
+        <span style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem">$</span>
+        <input class="inp" id="acc-custom-${i}" type="number" min="0" step="0.01" placeholder="0.00"
+          style="padding-left:22px;text-align:right;padding-right:8px" value="${item.price||''}"/>
+      </div>
+      <div onclick="removeCustomPricingItem(${i})" style="color:var(--red);cursor:pointer;padding:4px 6px;font-size:1rem;flex-shrink:0">✕</div>
+    </div>`).join('');
+}
+
+function addCustomPricingItem(){
+  const name = document.getElementById('new-custom-name').value.trim();
+  const unit = document.getElementById('new-custom-unit').value;
+  const price = parseFloat(document.getElementById('new-custom-price').value)||0;
+  if(!name){showToast('Enter an item name','error');return;}
+  if(!_pricing.customItems) _pricing.customItems = [];
+  _pricing.customItems.push({name, unit, price});
+  document.getElementById('new-custom-name').value = '';
+  document.getElementById('new-custom-price').value = '';
+  renderCustomPricingItems();
+  showToast('Item added — save to keep it','');
+}
+
+function removeCustomPricingItem(index){
+  if(!_pricing.customItems)return;
+  _pricing.customItems.splice(index,1);
+  renderCustomPricingItems();
+}
+
 async function savePricing(){
   const ref = pricingRef();
   if(!ref){showToast('Not connected','error');return;}
   const data = {updatedAt: new Date().toISOString()};
-  // Save per-product prices
+  // Per-product prices
   const allProducts = [...PRODUCT_LIBRARY.shingles,...PRODUCT_LIBRARY.metal,...PRODUCT_LIBRARY.flat];
   allProducts.forEach(p=>{
     const el = document.getElementById('pr-prod-'+p.id);
     if(el) data['prod_'+p.id] = parseFloat(el.value)||0;
   });
-  // Save accessory prices
-  const accFields = ['trim-lf','ridge-lf','icewater','underlay','gutters-lf','tearoff'];
-  accFields.forEach(f=>{
-    const el = document.getElementById('pr-'+f);
-    if(el) data[f] = parseFloat(el.value)||0;
+  // Standard accessory prices
+  ACCESSORY_SECTIONS.forEach(sec=>{
+    sec.items.forEach(item=>{
+      const el = document.getElementById('acc-'+item.id);
+      if(el) data['acc_'+item.id] = parseFloat(el.value)||0;
+    });
   });
+  // Custom item prices — update prices from inputs before saving
+  const customs = (_pricing.customItems||[]).map((item,i)=>{
+    const el = document.getElementById('acc-custom-'+i);
+    return {...item, price: el ? parseFloat(el.value)||0 : item.price};
+  });
+  data.customItems = customs;
   try{
     await ref.set(data);
     _pricing = data;
