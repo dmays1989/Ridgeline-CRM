@@ -4501,7 +4501,8 @@ function initFirebase(){
     var scripts=[
       'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
       'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
-      'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'
+      'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js',
+      'https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js'
     ];
     var loaded=0;
     var failed=false;
@@ -6217,29 +6218,14 @@ function showToast(msg,type){if(type===undefined)type='';
 
 // ══ EAGLEVIEW INTEGRATION ══
 
-const EV_TOKEN_URL  = 'https://apicenter.eagleview.com/oauth2/v1/token';
-const EV_API_BASE   = 'https://sandbox.apicenter.eagleview.com'; // switch to https://apicenter.eagleview.com for production
+// EagleView calls go through Firebase Cloud Function (avoids CORS)
+let _evProducts = null;
+let _evPollTimer = null;
 
-let _evToken       = null;
-let _evTokenExpiry = 0;
-let _evProducts    = null;
-let _evPollTimer   = null;
-
-async function _evGetToken(){
-  if(_evToken && Date.now() < _evTokenExpiry - 60000) return _evToken;
-  const cp = _companyProfile||{};
-  if(!cp.evClientId||!cp.evClientSecret) throw new Error('EagleView credentials not set — add them in Settings → Company Profile');
-  const creds = btoa(cp.evClientId+':'+cp.evClientSecret);
-  const r = await fetch(EV_TOKEN_URL,{
-    method:'POST',
-    headers:{'Authorization':'Basic '+creds,'Content-Type':'application/x-www-form-urlencoded'},
-    body:'grant_type=client_credentials'
-  });
-  if(!r.ok) throw new Error('EagleView auth failed ('+r.status+') — check your Client ID and Secret');
-  const d = await r.json();
-  _evToken = d.access_token;
-  _evTokenExpiry = Date.now()+(d.expires_in*1000);
-  return _evToken;
+async function _evCall(action, params={}){
+  const fn = firebase.functions().httpsCallable('evProxy');
+  const result = await fn({action, companyCode:_companyCode, params});
+  return result.data;
 }
 
 async function showEvOrderScreen(){
@@ -6257,10 +6243,7 @@ async function showEvOrderScreen(){
 }
 
 async function _evLoadProducts(){
-  const token=await _evGetToken();
-  const r=await fetch(EV_API_BASE+'/GetAvailableProducts',{headers:{'Authorization':'Bearer '+token}});
-  if(!r.ok) throw new Error('Products fetch failed: '+r.status);
-  const d=await r.json();
+  const d=await _evCall('getProducts');
   _evProducts=(Array.isArray(d)?d:[d]).filter(p=>p.IsRoofProduct&&!p.isTemporarilyUnavailable);
   renderEvOrderScreen();
 }
@@ -6391,8 +6374,7 @@ async function evPlaceOrder(){
   const j=CJ();if(!j)return;
   try{
     showToast('Placing order with EagleView…','');
-    const token=await _evGetToken();
-    const body={OrderReports:{
+    const orderBody={OrderReports:{
       ReportAddresses:{Address:street,City:city,State:state,Zip:zip,Country:'USA',AddressType:1},
       PrimaryProductId:productId,
       DeliveryProductId:deliveryId,
@@ -6400,13 +6382,7 @@ async function evPlaceOrder(){
       ChangesInLast4Years:false,
       ReferenceId:String(j.id||j.name||'').substring(0,100)
     }};
-    const r=await fetch(EV_API_BASE+'/v2/Order/PlaceOrder',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify(body)
-    });
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.Message||'Order failed: '+r.status);}
-    const d=await r.json();
+    const d=await _evCall('placeOrder',{orderBody});
     const resp=Array.isArray(d)?d[0]:d;
     const reportId=resp.ReportIds?.[0]||resp.ReportId;
     if(!reportId) throw new Error('No Report ID returned — check EagleView account billing setup');
@@ -6429,10 +6405,7 @@ async function evCheckStatus(reportId){
   const rid=reportId||j.evReport?.reportId;
   if(!rid)return;
   try{
-    const token=await _evGetToken();
-    const r=await fetch(EV_API_BASE+'/v3/Report/GetReport?reportId='+rid,{headers:{'Authorization':'Bearer '+token}});
-    if(!r.ok) throw new Error('Status '+r.status);
-    const raw=await r.json();
+    const raw=await _evCall('getReport',{reportId:rid});
     const d=Array.isArray(raw)?raw[0]:raw;
     const done=d.Status==='Completed'||d.Status==='Complete';
     j.evReport={

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\dmays\\\\OneDrive\\\\Documents\\\\Ridgeline CRM\")",
+      "Bash(dir /s /b \"C:\\\\Users\\\\dmays\\\\OneDrive\\\\Documents\")",
+      "Bash(findstr /i \"index.html\")",
+      "PowerShell([System.IO.DriveInfo]::GetDrives\\(\\) | Select-Object Name, DriveType, IsReady)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git config *)",
+      "Bash(git push *)",
+      "WebFetch(domain:www.sumoquote.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.mapbox.com)",
+      "WebFetch(domain:cdnjs.com)",
+      "WebFetch(domain:www.jsdelivr.com)"
+    ]
+  }
+}
