@@ -979,6 +979,23 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
             <span style="font-family:var(--head);font-size:1.5rem;font-weight:700;color:var(--green)" id="propGrandTotalDisplay">$0.00</span>
           </div>
         </div>
+        <!-- Color palette for single mode -->
+        <div style="margin-top:10px">
+          <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin-bottom:5px">Customer Color Selection</div>
+          <select class="inp" id="propColorPalette" style="font-size:.85rem">
+            <option value="none">— No color selection —</option>
+            <optgroup label="Shingles">
+              <option value="gaf-hdz">GAF Timberline HDZ</option>
+              <option value="oc-duration">Owens Corning Duration</option>
+              <option value="ct-landmark">CertainTeed Landmark</option>
+              <option value="tamko-heritage">TAMKO Heritage</option>
+              <option value="gaf-3tab">GAF Royal Sovereign (3-Tab)</option>
+            </optgroup>
+            <optgroup label="Metal">
+              <option value="metal">Metal Panels</option>
+            </optgroup>
+          </select>
+        </div>
       </div>
 
       <!-- TIERED FIELDS -->
@@ -1007,6 +1024,22 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
                 <button type="button" onclick="openTemplatePicker('propTier_good_scope')" style="background:rgba(45,125,210,.15);border:1px solid rgba(45,125,210,.3);color:var(--blue);border-radius:5px;padding:3px 8px;font-size:.68rem;cursor:pointer;font-weight:600">📋 Template</button>
               </div>
               <textarea class="inp" id="propTier_good_scope" rows="2" placeholder="Scope for Good option…" style="font-size:.82rem;line-height:1.5"></textarea>
+            </div>
+            <div style="margin-top:8px">
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin-bottom:4px">Color Options for Customer</div>
+              <select class="inp" id="propTier_good_palette" style="font-size:.82rem">
+                <option value="none">— No color selection —</option>
+                <optgroup label="Shingles">
+                  <option value="gaf-hdz">GAF Timberline HDZ</option>
+                  <option value="oc-duration">Owens Corning Duration</option>
+                  <option value="ct-landmark">CertainTeed Landmark</option>
+                  <option value="tamko-heritage">TAMKO Heritage</option>
+                  <option value="gaf-3tab">GAF Royal Sovereign (3-Tab)</option>
+                </optgroup>
+                <optgroup label="Metal">
+                  <option value="metal">Metal Panels</option>
+                </optgroup>
+              </select>
             </div>
           </div>
         </div>
@@ -1038,6 +1071,22 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
               </div>
               <textarea class="inp" id="propTier_better_scope" rows="2" placeholder="Scope for Better option…" style="font-size:.82rem;line-height:1.5"></textarea>
             </div>
+            <div style="margin-top:8px">
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin-bottom:4px">Color Options for Customer</div>
+              <select class="inp" id="propTier_better_palette" style="font-size:.82rem">
+                <option value="none">— No color selection —</option>
+                <optgroup label="Shingles">
+                  <option value="gaf-hdz">GAF Timberline HDZ</option>
+                  <option value="oc-duration">Owens Corning Duration</option>
+                  <option value="ct-landmark">CertainTeed Landmark</option>
+                  <option value="tamko-heritage">TAMKO Heritage</option>
+                  <option value="gaf-3tab">GAF Royal Sovereign (3-Tab)</option>
+                </optgroup>
+                <optgroup label="Metal">
+                  <option value="metal">Metal Panels</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
         </div>
         <!-- BEST -->
@@ -1065,6 +1114,22 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
               </div>
               <textarea class="inp" id="propTier_best_scope" rows="2" placeholder="Scope for Best option…" style="font-size:.82rem;line-height:1.5"></textarea>
             </div>
+            <div style="margin-top:8px">
+              <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin-bottom:4px">Color Options for Customer</div>
+              <select class="inp" id="propTier_best_palette" style="font-size:.82rem">
+                <option value="none">— No color selection —</option>
+                <optgroup label="Shingles">
+                  <option value="gaf-hdz">GAF Timberline HDZ</option>
+                  <option value="oc-duration">Owens Corning Duration</option>
+                  <option value="ct-landmark">CertainTeed Landmark</option>
+                  <option value="tamko-heritage">TAMKO Heritage</option>
+                  <option value="gaf-3tab">GAF Royal Sovereign (3-Tab)</option>
+                </optgroup>
+                <optgroup label="Metal">
+                  <option value="metal">Metal Panels</option>
+                </optgroup>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -1077,23 +1142,6 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
         </div>
         <textarea class="inp" id="propScopeNotes" rows="3" placeholder="Describe the work for the customer…"></textarea>
       </div>
-    </div>
-    <!-- Color palette the customer can choose from -->
-    <div style="padding:0 16px 14px">
-      <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;margin-bottom:6px">Customer Color Selection</div>
-      <select class="inp" id="propColorPalette" style="font-size:.88rem">
-        <option value="none">— No color selection —</option>
-        <optgroup label="Shingles">
-          <option value="gaf-hdz">GAF Timberline HDZ</option>
-          <option value="oc-duration">Owens Corning Duration</option>
-          <option value="ct-landmark">CertainTeed Landmark</option>
-          <option value="tamko-heritage">TAMKO Heritage</option>
-          <option value="gaf-3tab">GAF Royal Sovereign (3-Tab)</option>
-        </optgroup>
-        <optgroup label="Metal">
-          <option value="metal">Metal Panels</option>
-        </optgroup>
-      </select>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('proposal-setup')">Cancel</button>
@@ -2613,10 +2661,11 @@ function openProposalSetup(){
       document.getElementById('propTier_'+level+'_lab').value=tier.laborPerSq!==undefined?tier.laborPerSq:(level==='better'?defaultLab:'');
       document.getElementById('propTier_'+level+'_add').value=tier.additionalCharges||'';
       document.getElementById('propTier_'+level+'_scope').value=tier.scopeNotes||'';
+      document.getElementById('propTier_'+level+'_palette').value=tier.colorPalette||'none';
     });
   }
   updatePropTotals();
-  // Pre-select color palette: saved value → shingleBrand fallback → 'none'
+  // Pre-select single-mode color palette
   const brandToPalette={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage'};
   const defaultPalette=existing.colorPalette||(j.shingleBrand?brandToPalette[j.shingleBrand]||'none':'none');
   document.getElementById('propColorPalette').value=defaultPalette;
@@ -2757,25 +2806,8 @@ function applyPropTemplate(idx){
 
 // ══ SHAREABLE PROPOSAL — CONTRACTOR SIDE ══
 function getColorsForJob(j){
-  // Returns [{name,hex}] based on proposal.colorPalette set by the contractor.
-  // Falls back to shingleBrand for legacy proposals that predate the palette field.
-  const p=j.proposal||{};
-  const palette=p.colorPalette;
-  const allProds=[...(PRODUCT_LIBRARY.shingles||[]),...(PRODUCT_LIBRARY.metal||[]),...(PRODUCT_LIBRARY.flat||[])];
-
-  if(palette&&palette!=='none'){
-    if(palette==='metal')return METAL_COLORS.map(n=>({name:n,hex:''}));
-    const prod=allProds.find(pr=>pr.id===palette);
-    if(prod&&prod.colors&&prod.colors.length)return prod.colors;
-  }
-
-  // Legacy fallback: use shingleBrand if colorPalette not yet set
-  if(j.shingleBrand){
-    const brandToId={gaf:'gaf-hdz',owenscorning:'oc-duration',certainteed:'ct-landmark',tamko:'tamko-heritage'};
-    const prod=allProds.find(pr=>pr.id===(brandToId[j.shingleBrand]||''));
-    if(prod&&prod.colors&&prod.colors.length)return prod.colors;
-  }
-
+  // No longer used directly — colors are resolved per-tier in shareProposal.
+  // Kept for reference / single-mode legacy fallback.
   return[];
 }
 
@@ -2790,9 +2822,21 @@ async function shareProposal(){
     if(!fbDb)throw new Error('Not connected');
     const p=j.proposal;
     const cp=_companyProfile||{};
-    const colors=getColorsForJob(j);
-    // Build per-tier color options if tiered
-    const tiers=p.mode==='tiered'?Object.fromEntries(['good','better','best'].map(level=>[level,{...(p.tiers[level]||{}),colorOptions:colors}])):null;
+    // Helper: resolve a palette id to [{name,hex}]
+    const allProds=[...PRODUCT_LIBRARY.shingles,...PRODUCT_LIBRARY.metal,...PRODUCT_LIBRARY.flat];
+    function paletteToColors(palette){
+      if(!palette||palette==='none')return[];
+      if(palette==='metal')return METAL_COLORS.map(n=>({name:n,hex:''}));
+      const prod=allProds.find(pr=>pr.id===palette);
+      return prod?prod.colors:[];
+    }
+    // Build per-tier color options from each tier's own palette
+    const tiers=p.mode==='tiered'?Object.fromEntries(['good','better','best'].map(level=>{
+      const tier=p.tiers[level]||{};
+      return[level,{...tier,colorOptions:paletteToColors(tier.colorPalette)}];
+    })):null;
+    // Single-mode global colors
+    const colors=paletteToColors(p.colorPalette);
     const propId=Date.now().toString(36)+Math.random().toString(36).substr(2,7);
     const doc={
       proposalId:propId,
@@ -3125,6 +3169,7 @@ function saveProposalSetup(){
         materialPerSq:mat,laborPerSq:lab,
         additionalCharges:add,
         scopeNotes:document.getElementById('propTier_'+level+'_scope').value.trim(),
+        colorPalette:document.getElementById('propTier_'+level+'_palette').value||'none',
         grandTotal:rnd(mat*sq+lab*sq+add)
       };
     });
