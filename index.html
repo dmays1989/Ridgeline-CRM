@@ -156,6 +156,15 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
 .role-admin{background:rgba(224,48,48,.15);color:var(--red);}
 .role-manager{background:rgba(240,101,10,.15);color:var(--accent);}
 .role-crew{background:rgba(45,125,210,.15);color:var(--blue);}
+@media print{
+  body{background:#fff!important;overflow:visible!important;}
+  .no-print{display:none!important;}
+  .screen{position:static!important;overflow:visible!important;transform:none!important;opacity:1!important;}
+  #screen-customer-proposal{display:block!important;overflow:visible!important;background:#fff!important;}
+  #customerProposalBody{padding:0!important;max-width:100%!important;}
+  /* Hide everything except customer proposal body */
+  body > *:not(#screen-customer-proposal){display:none!important;}
+}
 </style>
 </head>
 <body>
@@ -3048,7 +3057,7 @@ function renderCustomerProposalPage(){
         <div style="font-size:.6rem;color:#555;text-align:center;max-width:48px;line-height:1.2">${c.name}</div>
       </div>`;
     }).join('');
-    colorHtml=`<div style="padding:16px;border-bottom:1px solid #ebebeb;background:white">
+    colorHtml=`<div class="no-print" style="padding:16px;border-bottom:1px solid #ebebeb;background:white">
       <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:1.5px;color:#aaa;font-weight:700;margin-bottom:12px">CHOOSE YOUR COLOR</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px">${swatches}</div>
     </div>`;
@@ -3083,17 +3092,23 @@ function renderCustomerProposalPage(){
       <div style="margin-top:14px;padding:10px 12px;background:#f8f8f8;border-radius:7px;font-size:.75rem;color:#666;line-height:1.6">
         By signing above, you authorize the work as described in this proposal.
       </div>
-      <div style="margin-top:14px;display:flex;gap:8px">
+      <div class="no-print" style="margin-top:14px;display:flex;gap:8px">
         <button onclick="customerSubmitSignature()" style="flex:2;padding:14px;background:${brand};color:white;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;letter-spacing:1px;cursor:pointer">✓ ACCEPT PROPOSAL</button>
         <button onclick="customerDeclineProposal()" style="flex:1;padding:14px;background:none;border:1.5px solid #ddd;border-radius:10px;font-size:.8rem;color:#888;cursor:pointer">Decline</button>
       </div>
     </div>`;
   }
 
-  const footer=`<div style="padding:12px 16px;text-align:center;background:#f5f5f5"><span style="font-size:.65rem;color:#ccc">Powered by Ridgeline</span></div>`;
+  const downloadBtn=`<div class="no-print" style="padding:14px 16px;background:#f5f5f5;border-top:1px solid #e8e8e8">
+    <button onclick="window.print()" style="width:100%;padding:13px;background:#1a1a1a;color:#fff;border:none;border-radius:9px;font-family:'Barlow Condensed',sans-serif;font-size:.95rem;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      📥 Save / Download PDF
+    </button>
+    <div style="font-size:.65rem;color:#aaa;text-align:center;margin-top:6px">Use your browser's "Save as PDF" option</div>
+  </div>`;
+  const footer=`<div style="padding:10px 16px;text-align:center;background:#f5f5f5"><span style="font-size:.65rem;color:#ccc">Powered by Ridgeline</span></div>`;
 
   body.innerHTML=`<div style="background:white;box-shadow:0 2px 20px rgba(0,0,0,.1);overflow:hidden">
-    ${signedBanner}${header}${custRow}${optionsHtml}${colorHtml}${termsHtml}${notesHtml}${boilerplateHtml}${sigHtml}${footer}
+    ${signedBanner}${header}${custRow}${optionsHtml}${colorHtml}${termsHtml}${notesHtml}${boilerplateHtml}${sigHtml}${downloadBtn}${footer}
   </div>`;
 
   // Init signature canvas
