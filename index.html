@@ -817,6 +817,20 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
   </div>
 </div>
 
+<!-- ═══ SCREEN: EAGLEVIEW ORDER ═══ -->
+<div class="screen hidden" id="screen-ev-order">
+  <div class="topbar">
+    <div class="icon-btn" onclick="closeEvOrderScreen()">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
+    </div>
+    <div style="flex:1">
+      <div class="topbar-title">🦅 EAGLEVIEW REPORT</div>
+      <div id="evOrderJobName" class="topbar-sub">—</div>
+    </div>
+  </div>
+  <div class="scroll-body" id="evOrderBody"></div>
+</div>
+
 <!-- ═══ SCREEN: SATELLITE MEASUREMENT ═══ -->
 <div class="screen hidden" id="screen-satellite" style="display:flex;flex-direction:column">
   <div class="topbar">
@@ -2528,6 +2542,8 @@ function renderSummaryTab(body){
   <button class="btn btn-accent" onclick="genOutput()">⬇ Generate Materials List</button>
   <div style="height:8px"></div>
   <button class="btn" style="background:linear-gradient(135deg,#1db954,#17a048);color:#fff;border:none" onclick="${CJ()&&CJ().proposal?'showProposalScreen()':'openProposalSetup()'}">📄 ${CJ()&&CJ().proposal?'View Proposal':'Build Customer Proposal'}</button>
+  <div style="height:8px"></div>
+  <button class="btn" style="background:linear-gradient(135deg,#1a3a5c,#1e5a9c);color:#fff;border:none" onclick="showEvOrderScreen()">🦅 Order EagleView Report</button>
   <div style="height:8px"></div>
   <button class="btn" style="background:linear-gradient(135deg,#0f4c81,#1a6fba);color:#fff;border:none" onclick="showSatelliteScreen()">🛰️ Satellite Roof Measure</button>
   <div style="height:8px"></div>
@@ -6197,6 +6213,288 @@ function showToast(msg,type){if(type===undefined)type='';
   const t=document.getElementById('toast');t.textContent=msg;
   t.className='toast show'+(type?' '+type:'');
   clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ══ EAGLEVIEW INTEGRATION ══
+
+const EV_TOKEN_URL  = 'https://apicenter.eagleview.com/oauth2/v1/token';
+const EV_API_BASE   = 'https://sandbox.apicenter.eagleview.com'; // switch to https://apicenter.eagleview.com for production
+
+let _evToken       = null;
+let _evTokenExpiry = 0;
+let _evProducts    = null;
+let _evPollTimer   = null;
+
+async function _evGetToken(){
+  if(_evToken && Date.now() < _evTokenExpiry - 60000) return _evToken;
+  const cp = _companyProfile||{};
+  if(!cp.evClientId||!cp.evClientSecret) throw new Error('EagleView credentials not set — add them in Settings → Company Profile');
+  const creds = btoa(cp.evClientId+':'+cp.evClientSecret);
+  const r = await fetch(EV_TOKEN_URL,{
+    method:'POST',
+    headers:{'Authorization':'Basic '+creds,'Content-Type':'application/x-www-form-urlencoded'},
+    body:'grant_type=client_credentials'
+  });
+  if(!r.ok) throw new Error('EagleView auth failed ('+r.status+') — check your Client ID and Secret');
+  const d = await r.json();
+  _evToken = d.access_token;
+  _evTokenExpiry = Date.now()+(d.expires_in*1000);
+  return _evToken;
+}
+
+async function showEvOrderScreen(){
+  const j=CJ();
+  if(!j){showToast('Open a job first','error');return;}
+  const cp=_companyProfile||{};
+  if(!cp.evClientId||!cp.evClientSecret){
+    showToast('Add EagleView credentials in Settings → Company Profile','error');
+    showScreen('settings');renderSettings();return;
+  }
+  showScreen('ev-order');
+  document.getElementById('evOrderJobName').textContent=j.name||'Job';
+  renderEvOrderScreen();
+  _evLoadProducts().catch(e=>{showToast('Could not load products: '+e.message,'error');renderEvOrderScreen();});
+}
+
+async function _evLoadProducts(){
+  const token=await _evGetToken();
+  const r=await fetch(EV_API_BASE+'/GetAvailableProducts',{headers:{'Authorization':'Bearer '+token}});
+  if(!r.ok) throw new Error('Products fetch failed: '+r.status);
+  const d=await r.json();
+  _evProducts=(Array.isArray(d)?d:[d]).filter(p=>p.IsRoofProduct&&!p.isTemporarilyUnavailable);
+  renderEvOrderScreen();
+}
+
+function renderEvOrderScreen(){
+  const el=document.getElementById('evOrderBody');
+  if(!el)return;
+  const j=CJ();if(!j)return;
+
+  // Parse stored address "Street, City, State ZIP"
+  const addr=(j.address||'').split(',').map(s=>s.trim());
+  const stateZip=(addr[2]||'').trim().split(/\s+/);
+  const defStreet=addr[0]||'';
+  const defCity=addr[1]||'';
+  const defState=stateZip[0]||'';
+  const defZip=stateZip.slice(1).join(' ')||addr[3]||'';
+
+  const ev=j.evReport;
+
+  // ── Report in progress ──
+  if(ev&&ev.status!=='Completed'&&ev.status!=='Complete'){
+    el.innerHTML=`<div class="card">
+      <div class="card-header"><h3>⏳ Report In Progress</h3></div>
+      <div class="card-body">
+        <div style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Report #${ev.reportId} is being processed by EagleView. Typical time: 5–15 minutes.</div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px">
+          <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Status</div>
+          <div style="font-family:var(--head);font-size:1.2rem;color:var(--accent);margin-top:4px">${ev.displayStatus||'Processing…'}</div>
+        </div>
+        <button class="btn btn-blue" onclick="evCheckStatus()">↻ Check Status Now</button>
+        <div style="height:8px"></div>
+        <button class="btn btn-outline" onclick="evClearReport()" style="color:var(--red);border-color:var(--red)">Cancel & Order New</button>
+      </div></div>`;
+    return;
+  }
+
+  // ── Completed report ──
+  if(ev&&(ev.status==='Completed'||ev.status==='Complete')){
+    const pitchRows=(ev.pitchTable||[]).map(p=>`
+      <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.82rem">
+        <span style="color:var(--muted)">${p.Pitch}</span>
+        <span style="font-family:var(--mono)">${parseFloat(p.RoofArea).toLocaleString()} SF <span style="color:var(--dim)">(${p.PercentageRoofArea})</span></span>
+      </div>`).join('');
+    el.innerHTML=`<div class="card" style="border-color:rgba(29,185,84,.4)">
+      <div class="card-header" style="background:linear-gradient(90deg,rgba(29,185,84,.1),transparent)"><h3>✅ Report Complete — #${ev.reportId}</h3></div>
+      <div class="card-body">
+        <div class="stat-grid" style="margin-bottom:12px">
+          <div class="stat-tile hi"><div class="num">${parseFloat(ev.area||0).toLocaleString()}<span class="unit">SF</span></div><div class="lbl">Total Area</div></div>
+          <div class="stat-tile"><div class="num">${ev.totalFacets||'—'}</div><div class="lbl">Facets</div></div>
+          ${ev.lengthRidge?`<div class="stat-tile"><div class="num">${ev.lengthRidge}<span class="unit">LF</span></div><div class="lbl">Ridge</div></div>`:''}
+          ${ev.lengthValley?`<div class="stat-tile"><div class="num">${ev.lengthValley}<span class="unit">LF</span></div><div class="lbl">Valley</div></div>`:''}
+          ${ev.lengthEave?`<div class="stat-tile"><div class="num">${ev.lengthEave}<span class="unit">LF</span></div><div class="lbl">Eave</div></div>`:''}
+          ${ev.lengthHip?`<div class="stat-tile"><div class="num">${ev.lengthHip}<span class="unit">LF</span></div><div class="lbl">Hip</div></div>`:''}
+        </div>
+        ${pitchRows?`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px">
+          <div style="font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Pitch Breakdown</div>
+          ${pitchRows}</div>`:''}
+        ${ev.reportDownloadLink?`<a href="${ev.reportDownloadLink}" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border2);color:var(--text);text-decoration:none;font-family:var(--head);font-size:.9rem;letter-spacing:1px;font-weight:700;margin-bottom:8px">📄 DOWNLOAD PDF REPORT</a>`:''}
+        <button class="btn btn-accent" onclick="evImportMeasurements()">⬇ Import Sections to Job</button>
+      </div></div>
+      <div style="height:8px"></div>
+      <button class="btn btn-outline" onclick="evClearReport()" style="color:var(--red);border-color:var(--red)">🗑 Clear & Order New Report</button>`;
+    return;
+  }
+
+  // ── Order form ──
+  const productsHtml=!_evProducts
+    ?`<div style="color:var(--muted);font-size:.82rem;padding:8px 0">Loading products…</div>`
+    :_evProducts.length===0
+      ?`<div style="color:var(--red);font-size:.82rem">No roofing products available on this account</div>`
+      :`<select class="inp" id="evProductSelect">
+          ${_evProducts.map(p=>{
+            const del=Array.isArray(p.deliveryProducts)?p.deliveryProducts[0]:p.deliveryProducts;
+            return`<option value="${p.productID}" data-delivery="${del?.productID||p.productID}">
+              ${p.name}${p.priceMin?` — $${p.priceMin}–$${p.priceMax}`:''}
+            </option>`;}).join('')}
+        </select>`;
+
+  el.innerHTML=`
+    <div class="card">
+      <div class="card-header"><h3>🏠 Property Address</h3></div>
+      <div class="card-body">
+        <div class="field"><label>Street</label>
+          <input class="inp" id="evStreet" type="text" value="${defStreet}" placeholder="123 Main St"/>
+        </div>
+        <div class="inp-row">
+          <div class="field"><label>City</label>
+            <input class="inp" id="evCity" type="text" value="${defCity}" placeholder="City"/>
+          </div>
+          <div class="field"><label>State</label>
+            <input class="inp" id="evState" type="text" value="${defState}" placeholder="TN" style="text-transform:uppercase;max-width:80px"/>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:0"><label>ZIP Code</label>
+          <input class="inp" id="evZip" type="text" value="${defZip}" placeholder="00000" style="max-width:120px"/>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>📦 Report Type</h3></div>
+      <div class="card-body">
+        <div class="field"><label>Product</label>${productsHtml}</div>
+        <div class="field" style="margin-bottom:0"><label>Measurement Instructions</label>
+          <select class="inp" id="evMeasType">
+            <option value="1">Measure all planes (Full)</option>
+            <option value="2">Partial measurement</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="background:rgba(240,101,10,.07);border:1px solid rgba(240,101,10,.25);border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:.8rem;color:var(--muted);line-height:1.5">
+      ⚠️ <strong style="color:var(--text)">Sandbox mode</strong> — no real charges. Reports use EagleView test data.
+    </div>
+    <button class="btn btn-accent" onclick="evPlaceOrder()" ${!_evProducts||!_evProducts.length?'disabled style="opacity:.5"':''}>📐 Order EagleView Report</button>`;
+}
+
+async function evPlaceOrder(){
+  const street=(document.getElementById('evStreet')||{}).value?.trim();
+  const city=(document.getElementById('evCity')||{}).value?.trim();
+  const state=(document.getElementById('evState')||{}).value?.trim().toUpperCase();
+  const zip=(document.getElementById('evZip')||{}).value?.trim();
+  if(!street||!city||!state||!zip){showToast('Enter the complete address','error');return;}
+  const sel=document.getElementById('evProductSelect');
+  if(!sel){showToast('Products still loading — try again','error');return;}
+  const productId=parseInt(sel.value);
+  const deliveryId=parseInt(sel.selectedOptions[0]?.dataset.delivery||productId);
+  const measType=parseInt((document.getElementById('evMeasType')||{}).value||1);
+  const j=CJ();if(!j)return;
+  try{
+    showToast('Placing order with EagleView…','');
+    const token=await _evGetToken();
+    const body={OrderReports:{
+      ReportAddresses:{Address:street,City:city,State:state,Zip:zip,Country:'USA',AddressType:1},
+      PrimaryProductId:productId,
+      DeliveryProductId:deliveryId,
+      MeasurementInstructionType:measType,
+      ChangesInLast4Years:false,
+      ReferenceId:String(j.id||j.name||'').substring(0,100)
+    }};
+    const r=await fetch(EV_API_BASE+'/v2/Order/PlaceOrder',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.Message||'Order failed: '+r.status);}
+    const d=await r.json();
+    const resp=Array.isArray(d)?d[0]:d;
+    const reportId=resp.ReportIds?.[0]||resp.ReportId;
+    if(!reportId) throw new Error('No Report ID returned — check EagleView account billing setup');
+    j.evReport={reportId,orderId:resp.OrderId,status:'Processing',displayStatus:'Order Placed',placedAt:new Date().toISOString()};
+    save(JOBS_KEY,jobs);saveJobToFirestore(j).catch(e=>console.error(e));
+    showToast('Order placed! Report #'+reportId,'success');
+    renderEvOrderScreen();
+    _evStartPolling(reportId);
+  }catch(e){showToast('Order error: '+e.message,'error');}
+}
+
+function _evStartPolling(reportId){
+  if(_evPollTimer){clearInterval(_evPollTimer);_evPollTimer=null;}
+  setTimeout(()=>evCheckStatus(reportId),8000);
+  _evPollTimer=setInterval(()=>evCheckStatus(reportId),30000);
+}
+
+async function evCheckStatus(reportId){
+  const j=CJ();if(!j)return;
+  const rid=reportId||j.evReport?.reportId;
+  if(!rid)return;
+  try{
+    const token=await _evGetToken();
+    const r=await fetch(EV_API_BASE+'/v3/Report/GetReport?reportId='+rid,{headers:{'Authorization':'Bearer '+token}});
+    if(!r.ok) throw new Error('Status '+r.status);
+    const raw=await r.json();
+    const d=Array.isArray(raw)?raw[0]:raw;
+    const done=d.Status==='Completed'||d.Status==='Complete';
+    j.evReport={
+      ...(j.evReport||{}),reportId:d.ReportId,
+      status:d.Status,displayStatus:d.Status,
+      area:d.Area,pitch:d.Pitch,totalFacets:d.TotalRoofFacets,
+      lengthRidge:d.LengthRidge,lengthValley:d.LengthValley,
+      lengthEave:d.LengthEave,lengthRake:d.LengthRake,lengthHip:d.LengthHip,
+      pitchTable:d.PitchTable?(Array.isArray(d.PitchTable)?d.PitchTable:[d.PitchTable]):[],
+      reportDownloadLink:d.ReportDownloadLink,
+      completedAt:d.DateCompleted
+    };
+    save(JOBS_KEY,jobs);saveJobToFirestore(j).catch(e=>console.error(e));
+    if(done){
+      if(_evPollTimer){clearInterval(_evPollTimer);_evPollTimer=null;}
+      showToast('🦅 EagleView report ready!','success');
+      renderJobList();
+    }
+    const evScr=document.getElementById('screen-ev-order');
+    if(evScr&&!evScr.classList.contains('hidden')) renderEvOrderScreen();
+  }catch(e){console.error('EV status check:',e);}
+}
+
+function evImportMeasurements(){
+  const j=CJ();
+  if(!j||!j.evReport) return;
+  const ev=j.evReport;
+  if(!j.sections)j.sections=[];
+  const pitchTable=ev.pitchTable||[];
+  if(pitchTable.length>0){
+    pitchTable.forEach((pt,i)=>{
+      const sf=Math.round(parseFloat(pt.RoofArea)||0);
+      if(sf>0) j.sections.push({
+        id:Date.now()+Math.random(),
+        name:'EV Plane '+(pitchTable.length>1?i+1:'')+(pt.Pitch?' ('+pt.Pitch+')':''),
+        sf,w:0,l:0,pitch:pt.Pitch||'',type:'ag',
+        notes:'EagleView #'+ev.reportId+' — '+pt.PercentageRoofArea+' of roof'
+      });
+    });
+  }else{
+    const sf=Math.round(parseFloat(ev.area)||0);
+    if(sf>0) j.sections.push({id:Date.now(),name:'EagleView Roof',sf,w:0,l:0,pitch:ev.pitch||'',type:'ag',notes:'EagleView Report #'+ev.reportId});
+  }
+  save(JOBS_KEY,jobs);saveJobToFirestore(j).catch(e=>console.error(e));
+  const n=pitchTable.length||1;
+  showToast('Imported '+n+' section'+(n>1?'s':'')+' from EagleView!','success');
+  closeEvOrderScreen();
+}
+
+function evClearReport(){
+  const j=CJ();if(!j)return;
+  if(_evPollTimer){clearInterval(_evPollTimer);_evPollTimer=null;}
+  delete j.evReport;
+  save(JOBS_KEY,jobs);saveJobToFirestore(j).catch(e=>console.error(e));
+  _evProducts=null;
+  renderEvOrderScreen();
+  _evLoadProducts().catch(e=>console.error(e));
+}
+
+function closeEvOrderScreen(){
+  if(_evPollTimer){clearInterval(_evPollTimer);_evPollTimer=null;}
+  showScreen('job');renderJob();
 }
 
 // ══ SATELLITE MEASUREMENT (Leaflet + ESRI — no account required) ══
