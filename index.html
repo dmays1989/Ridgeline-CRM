@@ -2454,7 +2454,7 @@ function renderSummaryTab(body){
     </div></div>
   <button class="btn btn-accent" onclick="genOutput()">⬇ Generate Materials List</button>
   <div style="height:8px"></div>
-  <button class="btn" style="background:linear-gradient(135deg,#1db954,#17a048);color:#fff;border:none" onclick="openProposalSetup()">📄 ${CJ()&&CJ().proposal?'View / Edit Proposal':'Build Customer Proposal'}</button>
+  <button class="btn" style="background:linear-gradient(135deg,#1db954,#17a048);color:#fff;border:none" onclick="${CJ()&&CJ().proposal?'showProposalScreen()':'openProposalSetup()'}">📄 ${CJ()&&CJ().proposal?'View Proposal':'Build Customer Proposal'}</button>
   <div style="height:8px"></div>
   <div class="card"><div class="card-header"><h3>⚙️ Job Settings</h3></div><div class="card-body">
     <div class="field"><label>Metal Gauge</label>
@@ -3093,6 +3093,8 @@ function clearCustSig(){
 
 async function customerSubmitSignature(){
   const d=_custPropData;if(!d)return;
+  // Prevent double-submit
+  if(d.status==='signed'){return;}
   const name=(document.getElementById('custSigName')||{}).value||'';
   if(!name.trim()){alert('Please enter your full name.');return;}
   const p=d.proposal||{};
@@ -3100,28 +3102,35 @@ async function customerSubmitSignature(){
   // Get signature image from canvas
   let sigData='';
   if(_custSigCanvas){
-    // Check if canvas has any drawing
     const ctx=_custSigCanvas.getContext('2d');
     const imgData=ctx.getImageData(0,0,_custSigCanvas.width,_custSigCanvas.height);
     const hasDrawing=imgData.data.some((v,i)=>i%4===3&&v>0);
     if(!hasDrawing){alert('Please draw your signature.');return;}
-    sigData=_custSigCanvas.toDataURL('image/png');
+    sigData=_custSigCanvas.toDataURL('image/jpeg',0.6); // JPEG at 60% — much smaller than PNG
   }
+  // Optimistically mark signed so re-taps do nothing
+  _custPropData.status='signed';
   try{
+    const signedAt=new Date().toISOString();
+    // Keep signature in a separate sub-doc to avoid 1MB Firestore doc limit
+    const sigRef=fbDb.collection('sharedProposals').doc(d._propId).collection('sig').doc('v1');
+    await sigRef.set({signature:sigData,signedAt});
     const update={
       status:'signed',
       selectedTier:_custSelectedTier||null,
       selectedColor:window._custSelectedColor||'',
       signerName:name.trim(),
-      signature:sigData,
-      signedAt:new Date().toISOString()
+      signedAt
     };
     await fbDb.collection('sharedProposals').doc(d._propId).update(update);
     Object.assign(_custPropData,update);
+    _custPropData.signature=sigData;
     renderCustomerProposalPage();
-    // Scroll to top
     document.getElementById('screen-customer-proposal').scrollTop=0;
-  }catch(e){alert('Error submitting: '+e.message);}
+  }catch(e){
+    _custPropData.status='viewed'; // roll back optimistic update on failure
+    alert('Error submitting: '+e.message);
+  }
 }
 
 async function customerDeclineProposal(){
@@ -3377,6 +3386,7 @@ function renderProposalScreen(){
     <div style="height:14px"></div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-outline" onclick="openProposalSetup()" style="border-color:var(--blue);color:var(--blue);flex:1">✏️ Edit</button>
+      <button class="btn btn-outline" onclick="showProposalScreen()" style="flex:0 0 auto;padding:14px 12px" title="Refresh status">↻</button>
       <button class="btn" style="background:var(--accent);color:#fff;border:none;flex:1" onclick="shareProposal()">📤 Share</button>
     </div>`;
 }
