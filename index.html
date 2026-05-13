@@ -3182,7 +3182,41 @@ function saveProposalSetup(){
   showProposalScreen();
 }
 
-function showProposalScreen(){showScreen('proposal');renderProposalScreen();}
+async function showProposalScreen(){
+  showScreen('proposal');
+  const j=CJ();
+  // Sync proposal status from Firestore if customer may have acted on it
+  if(j&&j.proposal&&j.proposal.sharedId&&!['signed','declined'].includes(j.proposal.status)){
+    try{
+      if(!fbDb)fbDb=firebase.firestore();
+      const snap=await fbDb.collection('sharedProposals').doc(j.proposal.sharedId).get();
+      if(snap.exists){
+        const d=snap.data();
+        if(d.status&&d.status!==j.proposal.status){
+          // Pull signing details back into the job
+          j.proposal.status=d.status;
+          if(d.signerName)j.proposal.signerName=d.signerName;
+          if(d.selectedTier)j.proposal.selectedTier=d.selectedTier;
+          if(d.selectedColor)j.proposal.selectedColor=d.selectedColor;
+          if(d.signedAt)j.proposal.signedAt=d.signedAt;
+          if(d.signature)j.proposal.signature=d.signature;
+          // Move job to Won stage on signature
+          if(d.status==='signed'){
+            const wonStage=_pipelineStages.find(s=>s.id==='job-won')||
+                           _pipelineStages.find(s=>s.name.toLowerCase().includes('won'));
+            if(wonStage&&j.stage!==wonStage.id){
+              j.stage=wonStage.id;
+              showToast('🎉 Job moved to '+wonStage.name+'!','success');
+            }
+          }
+          save(JOBS_KEY,jobs);
+          saveJobToFirestore(j).catch(e=>console.error(e));
+        }
+      }
+    }catch(e){console.error('Proposal status sync:',e);}
+  }
+  renderProposalScreen();
+}
 
 function renderProposalScreen(){
   const j=CJ();
