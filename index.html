@@ -2781,6 +2781,51 @@ async function deletePropTemplate(idx){
   showToast('Template deleted');
 }
 
+// ══ REAL-TIME PROPOSAL STATUS LISTENER ══
+let _proposalListener=null;
+
+function startProposalStatusListener(){
+  if(_proposalListener){_proposalListener();_proposalListener=null;}
+  if(!fbDb||!_companyCode)return;
+  _proposalListener=fbDb.collection('sharedProposals')
+    .where('companyCode','==',_companyCode)
+    .onSnapshot(snapshot=>{
+      snapshot.docChanges().forEach(change=>{
+        if(change.type==='removed')return;
+        const d=change.doc.data();
+        if(d.status==='signed'||d.status==='declined'){
+          _syncProposalToJob(change.doc.id,d);
+        }
+      });
+    },err=>console.error('Proposal listener:',err));
+}
+
+function _syncProposalToJob(propId,d){
+  const jobIdx=jobs.findIndex(j=>j.proposal&&j.proposal.sharedId===propId);
+  if(jobIdx<0)return;
+  const j=jobs[jobIdx];
+  if(j.proposal.status===d.status)return; // already in sync
+  j.proposal.status=d.status;
+  if(d.signerName)j.proposal.signerName=d.signerName;
+  if(d.selectedTier)j.proposal.selectedTier=d.selectedTier;
+  if(d.selectedColor)j.proposal.selectedColor=d.selectedColor;
+  if(d.signedAt)j.proposal.signedAt=d.signedAt;
+  if(d.status==='signed'){
+    const wonStage=_pipelineStages.find(s=>s.id==='job-won')||
+                   _pipelineStages.find(s=>s.name.toLowerCase().includes('won'));
+    if(wonStage&&j.stage!==wonStage.id){
+      j.stage=wonStage.id;
+      showToast('🎉 '+j.name+' — proposal signed! Moved to '+wonStage.name,'success');
+    }
+  }
+  save(JOBS_KEY,jobs);
+  saveJobToFirestore(j).catch(e=>console.error(e));
+  // Refresh visible screens
+  renderJobList();
+  const propScreen=document.getElementById('screen-proposal');
+  if(propScreen&&!propScreen.classList.contains('hidden'))renderProposalScreen();
+}
+
 function openTemplatePicker(targetId){
   _propTemplatePicker_target=targetId;
   const list=document.getElementById('propTemplatePickerList');
@@ -4468,6 +4513,7 @@ function onUserReady(){
     loadPipelineStages();
     loadCompanyProfile();
     loadPropTemplates();
+    startProposalStatusListener();
     listenNotifications();
     listenSchedules();
     renderJobList();
