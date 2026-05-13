@@ -478,10 +478,7 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       <button class="btn" style="background:var(--blue);color:#fff;border:none" onclick="showPropTemplates()">📋 Manage Templates</button>
     </div></div>
     <div class="card"><div class="card-header"><h3>🛰️ Satellite Imagery</h3></div><div class="card-body">
-      <div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;line-height:1.5">Enables satellite roof measurement. Get a <strong>free</strong> token at <a href="https://account.mapbox.com" target="_blank" style="color:var(--blue)">mapbox.com</a> (50,000 map loads/month free).</div>
-      <div class="field" style="margin-bottom:0"><label>Mapbox Public Token</label>
-        <input class="inp" id="cpMapboxToken" type="text" placeholder="pk.eyJ1…" style="font-family:var(--mono);font-size:.8rem"/>
-      </div>
+      <div style="font-size:.82rem;color:var(--muted);line-height:1.5">High-res satellite roof measurement — <strong style="color:var(--green)">completely free</strong>, no account or sign-up required. Tap <strong>🛰️ Satellite Roof Measure</strong> on any job to get started.</div>
     </div></div>
     <div class="card"><div class="card-header"><h3>👤 Account</h3></div><div class="card-body">
       <div id="settingsUserInfo" style="font-size:.85rem;color:var(--muted);margin-bottom:8px"></div>
@@ -751,6 +748,23 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
         <div class="field" style="margin-bottom:0"><label>Legal / Acceptance Language</label>
           <div style="font-size:.7rem;color:var(--muted);margin-bottom:6px">Shown at the bottom of every proposal under "Acceptance of Proposal". Set it once, applies to all jobs.</div>
           <textarea class="inp" id="cpBoilerplate" rows="5" placeholder="e.g. The above prices, specifications and conditions are satisfactory and are hereby accepted. You are authorized to do the work as specified..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- EagleView API -->
+    <div class="card">
+      <div class="card-header"><h3>🦅 EagleView Measurements</h3></div>
+      <div class="card-body">
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.5">Connects Ridgeline to EagleView for professional aerial roof measurements. Get credentials at <a href="https://developer.eagleview.com" target="_blank" style="color:var(--blue)">developer.eagleview.com</a>.</div>
+        <div class="field"><label>Client ID</label>
+          <input class="inp" id="evClientId" type="text" placeholder="Client ID" style="font-family:var(--mono);font-size:.82rem"/>
+        </div>
+        <div class="field" style="margin-bottom:0"><label>Client Secret</label>
+          <div style="position:relative">
+            <input class="inp" id="evClientSecret" type="password" placeholder="Client Secret" style="font-family:var(--mono);font-size:.82rem;padding-right:48px"/>
+            <button onclick="var f=document.getElementById('evClientSecret');f.type=f.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:4px">Show</button>
+          </div>
         </div>
       </div>
     </div>
@@ -5582,7 +5596,8 @@ function showCompanyProfile(){
       document.getElementById('brandColor').value = cp.brandColor;
       document.getElementById('brandColorLabel').textContent = cp.brandColor;
     }
-    document.getElementById('cpMapboxToken').value = cp.mapboxToken||'';
+    document.getElementById('evClientId').value = cp.evClientId||'';
+    document.getElementById('evClientSecret').value = cp.evClientSecret||'';
     if(cp.laborMode) setLaborMode(cp.laborMode);
     if(cp.logo){
       _cpLogoBase64 = cp.logo;
@@ -5679,7 +5694,8 @@ async function saveCompanyProfile(){
     boilerplate: document.getElementById('cpBoilerplate').value.trim(),
     brandColor: document.getElementById('brandColor').value,
     logo: _cpLogoBase64||'',
-    mapboxToken: document.getElementById('cpMapboxToken').value.trim(),
+    evClientId: document.getElementById('evClientId').value.trim(),
+    evClientSecret: document.getElementById('evClientSecret').value.trim(),
     updatedAt: new Date().toISOString()
   };
   try{
@@ -6183,7 +6199,7 @@ function showToast(msg,type){if(type===undefined)type='';
   clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2500);
 }
 
-// ══ SATELLITE MEASUREMENT ══
+// ══ SATELLITE MEASUREMENT (Leaflet + ESRI — no account required) ══
 
 const SAT_PITCHES=[
   {label:'Flat (0/12)',  factor:1.000},
@@ -6207,18 +6223,22 @@ let _satMapLoaded=false;
 let _satFacets=[];
 let _satDrawCoords=[];
 let _satJobIdx=-1;
+let _satPolyLayers=[];
+let _satDrawLayer=null;
+let _satDrawFill=null;
+let _satDotLayers=[];
 
-function loadMapboxGL(){
+function _loadLeaflet(){
   return new Promise((resolve,reject)=>{
-    if(window.mapboxgl){resolve();return;}
+    if(window.L){resolve();return;}
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='https://cdn.jsdelivr.net/npm/mapbox-gl@2.14.1/dist/mapbox-gl.css';
+    link.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(link);
     const script=document.createElement('script');
-    script.src='https://cdn.jsdelivr.net/npm/mapbox-gl@2.14.1/dist/mapbox-gl.min.js';
+    script.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     script.onload=resolve;
-    script.onerror=()=>reject(new Error('Failed to load Mapbox GL JS'));
+    script.onerror=()=>reject(new Error('Map library failed to load'));
     document.head.appendChild(script);
   });
 }
@@ -6226,12 +6246,6 @@ function loadMapboxGL(){
 async function showSatelliteScreen(){
   const j=CJ();
   if(!j){showToast('Open a job first','error');return;}
-  const token=(_companyProfile&&_companyProfile.mapboxToken)||'';
-  if(!token){
-    showToast('Add your Mapbox token in Settings → Satellite Imagery first','error');
-    showScreen('settings');renderSettings();
-    return;
-  }
   _satJobIdx=jobs.indexOf(j);
   _satFacets=j.satFacets?JSON.parse(JSON.stringify(j.satFacets)):[];
   _satDrawCoords=[];
@@ -6239,123 +6253,122 @@ async function showSatelliteScreen(){
   document.getElementById('satJobName').textContent=j.name||'Job';
   if(j.address)document.getElementById('satAddressInput').value=j.address;
   try{
-    await loadMapboxGL();
-    initSatMap(token,j);
+    await _loadLeaflet();
+    _initSatMap(j);
   }catch(e){
     showToast('Could not load map: '+e.message,'error');
     showScreen('job');renderJob();
   }
 }
 
-function initSatMap(token,j){
-  if(_satMap){_satMap.remove();_satMap=null;_satMapLoaded=false;}
-  mapboxgl.accessToken=token;
-  _satMap=new mapboxgl.Map({
-    container:'satMap',
-    style:'mapbox://styles/mapbox/satellite-streets-v11',
-    zoom:18,
-    center:[-98.5795,39.8283],
-    attributionControl:false
-  });
-  _satMap.addControl(new mapboxgl.NavigationControl({showCompass:false}),'top-right');
-  _satMap.addControl(new mapboxgl.AttributionControl({compact:true}),'bottom-left');
-  _satMap.on('load',()=>{
-    _satMapLoaded=true;
-    _satMap.addSource('sat-facets',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    _satMap.addSource('sat-drawing',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    _satMap.addSource('sat-pts',{type:'geojson',data:{type:'FeatureCollection',features:[]}});
-    _satMap.addLayer({id:'sat-facets-fill',type:'fill',source:'sat-facets',paint:{'fill-color':['get','color'],'fill-opacity':0.3}});
-    _satMap.addLayer({id:'sat-facets-line',type:'line',source:'sat-facets',paint:{'line-color':['get','color'],'line-width':2}});
-    _satMap.addLayer({id:'sat-draw-fill',type:'fill',source:'sat-drawing',filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':'#ffffff','fill-opacity':0.12}});
-    _satMap.addLayer({id:'sat-draw-line',type:'line',source:'sat-drawing',filter:['==',['geometry-type'],'LineString'],paint:{'line-color':'#ffffff','line-width':2,'line-dasharray':[4,3]}});
-    _satMap.addLayer({id:'sat-pts',type:'circle',source:'sat-pts',paint:{'circle-radius':6,'circle-color':'#ffffff','circle-stroke-width':2,'circle-stroke-color':'#000000'}});
-    _satMap.on('click',satMapClick);
-    _satMap.getCanvas().style.cursor='crosshair';
-    if(j.address){satGeocode();}
-    updateSatLayers();
-    renderSatPanel();
-    _updateSatButtons();
-  });
+function _initSatMap(j){
+  if(_satMap){_satMap.remove();_satMap=null;_satMapLoaded=false;_satPolyLayers=[];_satDrawLayer=null;_satDrawFill=null;_satDotLayers=[];}
+  _satMap=L.map('satMap',{zoomControl:false,attributionControl:true}).setView([39.8283,-98.5795],4);
+  L.control.zoom({position:'topright'}).addTo(_satMap);
+  // ESRI World Imagery — free, no account, excellent resolution
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
+    maxZoom:23,maxNativeZoom:19,
+    attribution:'Imagery &copy; Esri'
+  }).addTo(_satMap);
+  // Labels overlay
+  L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{
+    maxZoom:23,maxNativeZoom:19,opacity:0.8
+  }).addTo(_satMap);
+  _satMap.on('click',satMapClick);
+  _satMap.getContainer().style.cursor='crosshair';
+  _satMapLoaded=true;
+  if(j.address){satGeocode();}else{
+    // Default to continental US overview until they search
+  }
+  _updateSatLayers();
+  renderSatPanel();
+  _updateSatButtons();
+  // Fix Leaflet layout after screen transition
+  setTimeout(()=>{if(_satMap)_satMap.invalidateSize();},350);
 }
 
 function satMapClick(e){
-  if(!_satMapLoaded)return;
-  const lng=e.lngLat.lng, lat=e.lngLat.lat;
-  // Snap to first point to close polygon
+  if(!_satMapLoaded||!_satMap)return;
+  const lng=e.latlng.lng, lat=e.latlng.lat;
+  // Snap-to-close: if near first point, finish the facet
   if(_satDrawCoords.length>=3){
-    const fp=_satMap.project(_satDrawCoords[0]);
-    const cp=_satMap.project([lng,lat]);
-    const d=Math.hypot(fp.x-cp.x,fp.y-cp.y);
-    if(d<22){satFinishFacet();return;}
+    const fp=_satMap.latLngToContainerPoint(L.latLng(_satDrawCoords[0][1],_satDrawCoords[0][0]));
+    const cp=_satMap.latLngToContainerPoint(e.latlng);
+    if(Math.hypot(fp.x-cp.x,fp.y-cp.y)<24){satFinishFacet();return;}
   }
   _satDrawCoords.push([lng,lat]);
-  updateSatLayers();
+  _updateSatLayers();
   _updateSatButtons();
 }
 
 function satUndoPoint(){
   if(_satDrawCoords.length>0){
     _satDrawCoords.pop();
-    updateSatLayers();
+    _updateSatLayers();
     _updateSatButtons();
   }
 }
 
 function satFinishFacet(){
-  if(_satDrawCoords.length<3){showToast('Need at least 3 points to close a facet','error');return;}
+  if(_satDrawCoords.length<3){showToast('Need at least 3 points','error');return;}
   const coords=[..._satDrawCoords];
   const areaFlat=_polygonAreaSqFt(coords);
-  const defaultPitch=SAT_PITCHES[5]; // 6/12
+  const dp=SAT_PITCHES[5]; // default 6/12
   _satFacets.push({
     id:'f'+Date.now(),
     name:'Facet '+(_satFacets.length+1),
     coords,
     areaFlat:Math.round(areaFlat),
-    pitch:defaultPitch.label,
-    pitchFactor:defaultPitch.factor,
-    areaPitched:Math.round(areaFlat*defaultPitch.factor)
+    pitch:dp.label,
+    pitchFactor:dp.factor,
+    areaPitched:Math.round(areaFlat*dp.factor)
   });
   _satDrawCoords=[];
-  updateSatLayers();
+  _updateSatLayers();
   _updateSatButtons();
   renderSatPanel();
-  showToast('Facet added — adjust pitch below','success');
+  showToast('Facet added — set pitch in panel below','success');
 }
 
 function _polygonAreaSqFt(coords){
   if(coords.length<3)return 0;
   const R=6371000;
   const lat0=coords[0][1]*Math.PI/180;
-  const pts=coords.map(([lng,lat])=>({
-    x:lng*Math.PI/180*R*Math.cos(lat0),
-    y:lat*Math.PI/180*R
-  }));
+  const pts=coords.map(([lng,lat])=>({x:lng*Math.PI/180*R*Math.cos(lat0),y:lat*Math.PI/180*R}));
   let area=0;const n=pts.length;
   for(let i=0;i<n;i++){const j=(i+1)%n;area+=pts[i].x*pts[j].y-pts[j].x*pts[i].y;}
-  return Math.abs(area)/2*10.7639; // m² → ft²
+  return Math.abs(area)/2*10.7639;
 }
 
-function updateSatLayers(){
+function _updateSatLayers(){
   if(!_satMap||!_satMapLoaded)return;
+  // Clear old layers
+  _satPolyLayers.forEach(l=>_satMap.removeLayer(l));_satPolyLayers=[];
+  if(_satDrawLayer){_satMap.removeLayer(_satDrawLayer);_satDrawLayer=null;}
+  if(_satDrawFill){_satMap.removeLayer(_satDrawFill);_satDrawFill=null;}
+  _satDotLayers.forEach(l=>_satMap.removeLayer(l));_satDotLayers=[];
   // Completed facets
-  const facetFeatures=_satFacets.map((f,i)=>({
-    type:'Feature',
-    properties:{color:SAT_COLORS[i%SAT_COLORS.length]},
-    geometry:{type:'Polygon',coordinates:[[...f.coords,f.coords[0]]]}
-  }));
-  _satMap.getSource('sat-facets').setData({type:'FeatureCollection',features:facetFeatures});
-  // Drawing preview
-  const drawFeatures=[];
+  _satFacets.forEach((f,i)=>{
+    const color=SAT_COLORS[i%SAT_COLORS.length];
+    const lls=f.coords.map(c=>L.latLng(c[1],c[0]));
+    const poly=L.polygon(lls,{color,weight:2.5,fillColor:color,fillOpacity:0.28,interactive:false});
+    poly.addTo(_satMap);_satPolyLayers.push(poly);
+  });
+  // In-progress drawing
   if(_satDrawCoords.length>=2){
-    const closed=[..._satDrawCoords,_satDrawCoords[0]];
-    drawFeatures.push({type:'Feature',geometry:{type:'LineString',coordinates:closed}});
+    const lls=_satDrawCoords.map(c=>L.latLng(c[1],c[0]));
+    _satDrawLayer=L.polyline([...lls,lls[0]],{color:'#fff',weight:2,dashArray:'7 5',interactive:false}).addTo(_satMap);
     if(_satDrawCoords.length>=3){
-      drawFeatures.push({type:'Feature',geometry:{type:'Polygon',coordinates:[closed]}});
+      _satDrawFill=L.polygon(lls,{color:'#fff',weight:0,fillColor:'#fff',fillOpacity:0.1,interactive:false}).addTo(_satMap);
     }
   }
-  _satMap.getSource('sat-drawing').setData({type:'FeatureCollection',features:drawFeatures});
   // Vertex dots
-  _satMap.getSource('sat-pts').setData({type:'FeatureCollection',features:_satDrawCoords.map(c=>({type:'Feature',geometry:{type:'Point',coordinates:c}}))});
+  _satDrawCoords.forEach((c,i)=>{
+    const dot=L.circleMarker(L.latLng(c[1],c[0]),{
+      radius:i===0?7:5,color:'#000',weight:2,fillColor:i===0?'#f0650a':'#fff',fillOpacity:1,interactive:false
+    }).addTo(_satMap);
+    _satDotLayers.push(dot);
+  });
 }
 
 function _updateSatButtons(){
@@ -6367,24 +6380,23 @@ function _updateSatButtons(){
   if(hint){
     if(_satDrawCoords.length===0)hint.textContent='Tap map to start drawing a facet';
     else if(_satDrawCoords.length<3)hint.textContent=_satDrawCoords.length+' point'+(_satDrawCoords.length>1?'s':'')+' — keep tapping';
-    else hint.textContent='Tap ✓ Close Facet or tap near start point to finish';
+    else hint.textContent='Tap ✓ Close Facet or tap near the orange start dot';
   }
 }
 
 function renderSatPanel(){
   const el=document.getElementById('satPanelContent');
   if(!el)return;
-  if(_satFacets.length===0){
+  if(!_satFacets.length){
     el.innerHTML='<div style="color:var(--muted);font-size:.82rem;text-align:center;padding:14px 0">No facets yet — tap the map to start drawing</div>';
     return;
   }
-  const totalPitched=_satFacets.reduce((s,f)=>s+f.areaPitched,0);
+  const total=_satFacets.reduce((s,f)=>s+f.areaPitched,0);
   el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
     <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">ROOF FACETS</div>
-    <div style="font-family:var(--head);font-size:1.05rem;color:var(--accent)">${totalPitched.toLocaleString()} SF total</div>
+    <div style="font-family:var(--head);font-size:1.05rem;color:var(--accent)">${total.toLocaleString()} SF total</div>
   </div>
-  ${_satFacets.map((f,i)=>{
-    const color=SAT_COLORS[i%SAT_COLORS.length];
+  ${_satFacets.map((f,i)=>{const color=SAT_COLORS[i%SAT_COLORS.length];
     return`<div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:11px 12px;margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
         <div style="width:12px;height:12px;border-radius:3px;background:${color};flex-shrink:0"></div>
@@ -6398,21 +6410,18 @@ function renderSatPanel(){
         <div><div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Pitched Area</div>
           <div style="font-family:var(--head);font-size:1.15rem;color:var(--accent)">${f.areaPitched.toLocaleString()} <span style="font-size:.7rem;color:var(--muted)">SF</span></div></div>
       </div>
-      <div>
-        <div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Pitch</div>
+      <div><div style="font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Pitch</div>
         <select class="inp" style="padding:7px 10px;font-size:.82rem"
           onchange="updateSatFacetPitch(${i},parseFloat(this.value),this.options[this.selectedIndex].dataset.label)">
           ${SAT_PITCHES.map(p=>`<option value="${p.factor}" data-label="${p.label}"${f.pitchFactor===p.factor?' selected':''}>${p.label} (×${p.factor.toFixed(3)})</option>`).join('')}
         </select>
       </div>
-    </div>`;
-  }).join('')}`;
+    </div>`;}).join('')}`;
 }
 
 function updateSatFacetPitch(idx,factor,label){
   if(!_satFacets[idx])return;
-  _satFacets[idx].pitch=label;
-  _satFacets[idx].pitchFactor=factor;
+  _satFacets[idx].pitch=label;_satFacets[idx].pitchFactor=factor;
   _satFacets[idx].areaPitched=Math.round(_satFacets[idx].areaFlat*factor);
   renderSatPanel();
 }
@@ -6420,60 +6429,48 @@ function updateSatFacetPitch(idx,factor,label){
 function deleteSatFacet(id){
   _satFacets=_satFacets.filter(f=>f.id!==id);
   _satFacets.forEach((f,i)=>{if(/^Facet \d+$/.test(f.name))f.name='Facet '+(i+1);});
-  updateSatLayers();
-  renderSatPanel();
+  _updateSatLayers();renderSatPanel();
 }
 
 function clearSatFacets(){
   if(!_satFacets.length&&!_satDrawCoords.length)return;
   _satFacets=[];_satDrawCoords=[];
-  updateSatLayers();
-  _updateSatButtons();
-  renderSatPanel();
-  showToast('Cleared all facets','success');
+  _updateSatLayers();_updateSatButtons();renderSatPanel();
+  showToast('Cleared','success');
 }
 
 async function satGeocode(){
-  const q=document.getElementById('satAddressInput').value.trim();
-  if(!q)return;
-  const token=(_companyProfile&&_companyProfile.mapboxToken)||'';
-  if(!token||!_satMap)return;
+  const q=(document.getElementById('satAddressInput')||{}).value;
+  if(!q||!q.trim()||!_satMap)return;
   try{
-    const r=await fetch('https://api.mapbox.com/geocoding/v5/mapbox.places/'+encodeURIComponent(q)+'.json?access_token='+token+'&types=address,place&limit=1');
+    const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q.trim()),
+      {headers:{'Accept-Language':'en','User-Agent':'RidgelineCRM/1.0'}});
     const d=await r.json();
-    if(d.features&&d.features.length>0){
-      const [lng,lat]=d.features[0].center;
-      _satMap.flyTo({center:[lng,lat],zoom:19,duration:1500});
+    if(d&&d.length){
+      _satMap.flyTo(L.latLng(parseFloat(d[0].lat),parseFloat(d[0].lon)),19,{duration:1.5});
     }else{showToast('Address not found','error');}
-  }catch(e){showToast('Geocode error: '+e.message,'error');}
+  }catch(e){showToast('Search error: '+e.message,'error');}
 }
 
 function importSatMeasurements(){
   if(!_satFacets.length){showToast('No facets to import','error');return;}
-  const j=CJ();
-  if(!j){showToast('No job selected','error');return;}
+  const j=CJ();if(!j){showToast('No job selected','error');return;}
   j.satFacets=JSON.parse(JSON.stringify(_satFacets));
   if(!j.sections)j.sections=[];
   _satFacets.forEach(f=>{
     j.sections.push({
-      id:Date.now()+Math.random(),
-      name:f.name,
-      sf:f.areaPitched,
-      w:0,l:0,
-      pitch:f.pitch,
-      type:'ag',
+      id:Date.now()+Math.random(),name:f.name,sf:f.areaPitched,w:0,l:0,
+      pitch:f.pitch,type:'ag',
       notes:'Satellite: '+f.areaFlat+' SF flat × '+f.pitchFactor.toFixed(3)+' ('+f.pitch+')'
     });
   });
-  save(JOBS_KEY,jobs);
-  saveJobToFirestore(j).catch(e=>console.error(e));
+  save(JOBS_KEY,jobs);saveJobToFirestore(j).catch(e=>console.error(e));
   showToast('Imported '+_satFacets.length+' facet'+(_satFacets.length>1?'s':'')+' as sections!','success');
   closeSatelliteScreen();
 }
 
 function closeSatelliteScreen(){
-  showScreen('job');
-  renderJob();
+  showScreen('job');renderJob();
 }
 
 // ══ INIT ══
