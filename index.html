@@ -6407,14 +6407,27 @@ async function evCheckStatus(reportId){
   try{
     const raw=await _evCall('getReport',{reportId:rid});
     const d=Array.isArray(raw)?raw[0]:raw;
+    console.log('EV raw report data:',JSON.stringify(d));
     const done=d.Status==='Completed'||d.Status==='Complete';
+    // v3 API nests measurements inside TotalMeasurements; fall back to top-level fields
+    const tm=d.TotalMeasurements||d.MeasurementByStructure||{};
+    const area=d.Area||tm.Area||'0';
+    const pitch=d.Pitch||tm.PrimaryPitch||'';
+    const totalFacets=d.TotalRoofFacets||tm.TotalRoofFacets||'';
+    const lengthRidge=d.LengthRidge||tm.LengthRidge||'';
+    const lengthValley=d.LengthValley||tm.LengthValley||'';
+    const lengthEave=d.LengthEave||tm.LengthEave||'';
+    const lengthRake=d.LengthRake||tm.LengthRake||'';
+    const lengthHip=d.LengthHip||tm.LengthHip||'';
+    // PitchTable can be at top level or inside TotalMeasurements
+    const rawPT=d.PitchTable||tm.PitchTable||null;
+    const pitchTable=rawPT?(Array.isArray(rawPT)?rawPT:[rawPT]).filter(p=>p&&p.RoofArea&&parseFloat(p.RoofArea)>0):[];
     j.evReport={
       ...(j.evReport||{}),reportId:d.ReportId,
       status:d.Status,displayStatus:d.Status,
-      area:d.Area,pitch:d.Pitch,totalFacets:d.TotalRoofFacets,
-      lengthRidge:d.LengthRidge,lengthValley:d.LengthValley,
-      lengthEave:d.LengthEave,lengthRake:d.LengthRake,lengthHip:d.LengthHip,
-      pitchTable:d.PitchTable?(Array.isArray(d.PitchTable)?d.PitchTable:[d.PitchTable]):[],
+      area,pitch,totalFacets,
+      lengthRidge,lengthValley,lengthEave,lengthRake,lengthHip,
+      pitchTable,
       reportDownloadLink:d.ReportDownloadLink,
       completedAt:d.DateCompleted
     };
@@ -6434,6 +6447,7 @@ function evImportMeasurements(){
   if(!j||!j.evReport) return;
   const ev=j.evReport;
   if(!j.sections)j.sections=[];
+  const countBefore=j.sections.length;
   const pitchTable=ev.pitchTable||[];
   if(pitchTable.length>0){
     pitchTable.forEach((pt,i)=>{
@@ -6449,9 +6463,10 @@ function evImportMeasurements(){
     const sf=Math.round(parseFloat(ev.area)||0);
     if(sf>0) j.sections.push({id:Date.now(),name:'EagleView Roof',sf,w:0,l:0,pitch:ev.pitch||'',type:'ag',notes:'EagleView Report #'+ev.reportId});
   }
+  const added=j.sections.length-countBefore;
+  if(added===0){showToast('No measurements found in report — check console for raw data','error');return;}
   save(JOBS_KEY,jobs);saveJobToFirestore(j).catch(e=>console.error(e));
-  const n=pitchTable.length||1;
-  showToast('Imported '+n+' section'+(n>1?'s':'')+' from EagleView!','success');
+  showToast('Imported '+added+' section'+(added>1?'s':'')+' from EagleView!','success');
   closeEvOrderScreen();
 }
 
