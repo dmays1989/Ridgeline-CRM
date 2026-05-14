@@ -1034,20 +1034,45 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
           <label>Product / Description</label>
           <input class="inp" id="propProductDesc" type="text" placeholder="e.g. GAF Timberline HDZ – Charcoal"/>
         </div>
-        <div class="field">
-          <label>Material Cost ($/sq) — contractor only</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--muted)">$</span>
-            <input class="inp" id="propMaterialPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
-            <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+        <!-- Pricing mode toggle -->
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <div id="priceModeSplit" onclick="setPricingMode('split')"
+            style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--accent);background:rgba(240,101,10,.1);cursor:pointer;text-align:center;font-size:.78rem;font-weight:700">
+            Split (Mat + Labor)
+          </div>
+          <div id="priceModeCombined" onclick="setPricingMode('combined')"
+            style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--border2);background:var(--bg);cursor:pointer;text-align:center;font-size:.78rem;font-weight:700">
+            Combined (Total/sq)
           </div>
         </div>
-        <div class="field">
-          <label>Labor ($/sq)</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="color:var(--muted)">$</span>
-            <input class="inp" id="propLaborPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
-            <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+        <!-- Split mode fields -->
+        <div id="priceSplitFields">
+          <div class="field">
+            <label>Material Cost ($/sq) — contractor only</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:var(--muted)">$</span>
+              <input class="inp" id="propMaterialPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
+              <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Labor ($/sq)</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:var(--muted)">$</span>
+              <input class="inp" id="propLaborPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
+              <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+            </div>
+          </div>
+        </div>
+        <!-- Combined mode field -->
+        <div id="priceCombinedFields" style="display:none">
+          <div class="field">
+            <label>Total Installed Price ($/sq)</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:var(--muted)">$</span>
+              <input class="inp" id="propTotalPerSq" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="flex:1"/>
+              <span style="color:var(--muted);font-size:.78rem;white-space:nowrap">/ sq</span>
+            </div>
           </div>
         </div>
         <div class="field">
@@ -1059,8 +1084,8 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
           <input class="inp" id="propAdditionalDesc" type="text" placeholder="Description (e.g. Chimney flashing)" style="font-size:.85rem"/>
         </div>
         <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0"><span>Material</span><span id="propMatCostDisplay">—</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0;margin-bottom:8px"><span>Labor</span><span id="propLabCostDisplay">—</span></div>
+          <div id="propMatRow" style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0"><span>Material</span><span id="propMatCostDisplay">—</span></div>
+          <div id="propLabRow" style="display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);padding:3px 0;margin-bottom:8px"><span>Labor</span><span id="propLabCostDisplay">—</span></div>
           <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px">
             <span style="font-weight:700">Grand Total</span>
             <span style="font-family:var(--head);font-size:1.5rem;font-weight:700;color:var(--green)" id="propGrandTotalDisplay">$0.00</span>
@@ -2745,8 +2770,10 @@ function openProposalSetup(){
     document.getElementById('propProductDesc').value=existing.productDesc!==undefined?existing.productDesc:defaultDesc;
     document.getElementById('propMaterialPerSq').value=existing.materialPerSq!==undefined?existing.materialPerSq:defaultMat;
     document.getElementById('propLaborPerSq').value=existing.laborPerSq!==undefined?existing.laborPerSq:defaultLab;
+    document.getElementById('propTotalPerSq').value=existing.totalPerSq||'';
     document.getElementById('propAdditional').value=existing.additionalCharges||'';
     document.getElementById('propAdditionalDesc').value=existing.additionalDesc||'';
+    setPricingMode(existing.pricingMode||'split');
   } else {
     const tiers=existing.tiers||{};
     ['good','better','best'].forEach(level=>{
@@ -2767,16 +2794,36 @@ function openProposalSetup(){
   openModal('proposal-setup');
 }
 
+let _pricingMode='split';
+function setPricingMode(mode){
+  _pricingMode=mode;
+  const isCombined=mode==='combined';
+  document.getElementById('priceSplitFields').style.display=isCombined?'none':'';
+  document.getElementById('priceCombinedFields').style.display=isCombined?'':'none';
+  document.getElementById('propMatRow').style.display=isCombined?'none':'';
+  document.getElementById('propLabRow').style.display=isCombined?'none':'';
+  document.getElementById('priceModeSplit').style.borderColor=isCombined?'var(--border2)':'var(--accent)';
+  document.getElementById('priceModeSplit').style.background=isCombined?'var(--bg)':'rgba(240,101,10,.1)';
+  document.getElementById('priceModeCombined').style.borderColor=isCombined?'var(--accent)':'var(--border2)';
+  document.getElementById('priceModeCombined').style.background=isCombined?'rgba(240,101,10,.1)':'var(--bg)';
+  updatePropTotals();
+}
 function updatePropTotals(){
   const sq=window._propTotalSq||0;
   const fmt=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   if(_propMode==='single'){
-    const mat=+document.getElementById('propMaterialPerSq').value||0;
-    const lab=+document.getElementById('propLaborPerSq').value||0;
     const add=+document.getElementById('propAdditional').value||0;
-    const matCost=mat*sq;const labCost=lab*sq;const total=matCost+labCost+add;
-    document.getElementById('propMatCostDisplay').textContent=mat?fmt(matCost):'—';
-    document.getElementById('propLabCostDisplay').textContent=lab?fmt(labCost):'—';
+    let matCost=0,labCost=0,total=0;
+    if(_pricingMode==='combined'){
+      const totalPerSq=+document.getElementById('propTotalPerSq').value||0;
+      total=totalPerSq*sq+add;
+    } else {
+      const mat=+document.getElementById('propMaterialPerSq').value||0;
+      const lab=+document.getElementById('propLaborPerSq').value||0;
+      matCost=mat*sq;labCost=lab*sq;total=matCost+labCost+add;
+      document.getElementById('propMatCostDisplay').textContent=mat?fmt(matCost):'—';
+      document.getElementById('propLabCostDisplay').textContent=lab?fmt(labCost):'—';
+    }
     document.getElementById('propGrandTotalDisplay').textContent=fmt(total);
   } else {
     ['good','better','best'].forEach(level=>{
@@ -3321,15 +3368,19 @@ function saveProposalSetup(){
     updatedAt:new Date().toISOString()
   };
   if(_propMode==='single'){
-    const mat=+document.getElementById('propMaterialPerSq').value||0;
-    const lab=+document.getElementById('propLaborPerSq').value||0;
     const add=+document.getElementById('propAdditional').value||0;
+    const isCombined=_pricingMode==='combined';
+    const mat=isCombined?0:(+document.getElementById('propMaterialPerSq').value||0);
+    const lab=isCombined?0:(+document.getElementById('propLaborPerSq').value||0);
+    const totalPerSq=isCombined?(+document.getElementById('propTotalPerSq').value||0):0;
+    const grandTotal=isCombined?rnd(totalPerSq*sq+add):rnd(mat*sq+lab*sq+add);
     Object.assign(proposal,{
       productDesc:document.getElementById('propProductDesc').value.trim(),
-      materialPerSq:mat,laborPerSq:lab,
+      pricingMode:_pricingMode,
+      materialPerSq:mat,laborPerSq:lab,totalPerSq,
       additionalCharges:add,
       additionalDesc:document.getElementById('propAdditionalDesc').value.trim(),
-      grandTotal:rnd(mat*sq+lab*sq+add)
+      grandTotal
     });
   } else {
     const tiers={};
