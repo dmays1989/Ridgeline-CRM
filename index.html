@@ -1759,9 +1759,11 @@ function parsePnl(l){const m=l.trim().match(/^(\d+)\s*@\s*([\d.]+)\s*"?$/);retur
 function parseTLen(s){s=s.trim();let m=s.match(/^(\d+)'(\d+)"$/);if(m)return+m[1]+ +m[2]/12;m=s.match(/^(\d+)'$/);if(m)return+m[1];m=s.match(/^([\d.]+)$/);if(m)return+m[1];return null;}
 function migrateSection(s){
   if(s&&s.rows)return s;
+  // EagleView/satellite imports: have sf set but no rows/text — preserve as-is
+  if(s&&s.sf!==undefined)return s;
   const rows=[];
   (s&&s.text||'').split('\n').forEach(l=>{const p=parsePnl(l);if(p)rows.push({qty:p.qty,inches:p.li});});
-  return{name:s?s.name:'',rows};
+  return{...s,name:s?s.name:'',rows};
 }
 function migrateTrim(t){
   if(t&&t.rows)return t;
