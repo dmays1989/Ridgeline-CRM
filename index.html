@@ -1885,6 +1885,8 @@ function calcSec(sec){
   const rt=secType(sec);
   if(rt==='shingle'||rt==='tpo'||rt==='pvc') return{...calcPlanes(sec.planes),p:0,lf:0,sc:0,butylLF:0};
   if(sec.rows) return calcSecFromRows(sec.rows,rt,sec);
+  // direct SF import (e.g. from EagleView or satellite)
+  if(sec.sf&&!sec.text) return{p:0,lf:0,sf:+sec.sf,sc:0,butylLF:0};
   // legacy text
   const sp=settings.screwSp||12;let p=0,lf=0,sf=0,sc=0;
   (sec.text||'').split('\n').forEach(l=>{const x=parsePnl(l);if(!x)return;p+=x.qty;const panelLF=(x.li/12)*x.qty;lf+=panelLF;sf+=panelLF*PANEL_W_FT;sc+=Math.ceil(x.li/sp)*x.qty;});
