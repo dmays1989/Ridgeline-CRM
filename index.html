@@ -408,6 +408,13 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
     <div class="icon-btn" onclick="toggleDaylight()" id="daylightBtnSettings" title="Daylight Mode">☀️</div>
   </div>
   <div class="scroll-body">
+    <!-- Billing Card -->
+    <div class="card" id="billingCard">
+      <div class="card-header"><h3>💳 Subscription & Billing</h3></div>
+      <div class="card-body" id="billingCardBody">
+        <div style="font-size:.85rem;color:var(--muted)">Loading billing status…</div>
+      </div>
+    </div>
     <div class="card"><div class="card-header"><h3>📐 Panel & Screw Defaults</h3></div><div class="card-body">
       <div style="background:rgba(240,101,10,.08);border:1px solid rgba(240,101,10,.25);border-radius:7px;padding:10px 12px;margin-bottom:12px;font-size:.82rem;color:var(--muted)">
         Panel width is fixed at <strong style="color:var(--accent)">3 ft</strong> — SF = panels × length × 3
@@ -2754,6 +2761,7 @@ function setProposalMode(mode){
 }
 
 function openProposalSetup(){
+  if(!_requireSubscription('build proposals')) return;
   const j=CJ();if(!j)return;
   const t=calcJob(j);
   const totalSq=Math.round(t.sf/100*100)/100;
@@ -3624,6 +3632,7 @@ function panelRowsToText(rows){return rows.map(r=>fmtPanelRow(r)).join('\n');}
 
 // ══ JOB CRUD ══
 function createJob(){
+  if(!_requireSubscription('create new jobs')) return;
   const name=document.getElementById('nj-name').value.trim();
   if(!name){showToast('Enter a customer name','error');return;}
   const camId=window._pendingCamId||null;
@@ -3850,6 +3859,7 @@ function renderSettings(){
   updateGaugeUI();
   updateScrewLenUI();
   renderCamStatus();
+  renderBillingCard();
   if(fbUser){
     var el=document.getElementById('settingsUserInfo');
     if(el)el.textContent='Signed in as '+(fbUser.displayName||'')+' ('+fbUser.email+')';
@@ -4688,28 +4698,135 @@ function onUserReady(){
   });
 }
 
+// ── Billing state ────────────────────────────────────────────────────────────
+let _billing = null; // loaded on login
+
 async function checkTrialStatus(){
   if(!fbDb||!_companyCode)return;
   try{
-    const doc=await companyRef().get();
-    if(!doc.exists)return;
-    const data=doc.data();
-    const trialStart=data.trialStart?new Date(data.trialStart):new Date();
-    const daysSince=Math.floor((new Date()-trialStart)/(1000*60*60*24));
-    const daysLeft=30-daysSince;
-    const sub=document.getElementById('topbarSub');
-    if(sub){
-      if(daysLeft>0&&daysLeft<=30){
-        sub.textContent='Ridge Line · '+_companyCode+(daysLeft<=7?' · Trial: '+daysLeft+'d left':'');
-        if(daysLeft<=7)sub.style.color='var(--accent)';
-      } else if(daysLeft<=0){
-        sub.textContent='Trial expired · Contact support';
-        sub.style.color='var(--red)';
-      } else {
-        sub.textContent='Ridge Line · '+_companyCode;
-      }
+    // Load or initialise billing doc
+    const bRef = fbDb.collection('companies').doc(_companyCode)
+      .collection('settings').doc('billing');
+    let bSnap = await bRef.get();
+
+    if(!bSnap.exists){
+      // First login — start 30-day trial
+      const trialEnd = new Date(Date.now() + 30*24*60*60*1000).toISOString();
+      await bRef.set({ status:'trial', trialEnd, createdAt: new Date().toISOString() });
+      bSnap = await bRef.get();
     }
-  }catch(e){}
+
+    _billing = bSnap.data();
+
+    // Compute effective status
+    const now = new Date();
+    if(_billing.status === 'trial'){
+      const trialEnd = new Date(_billing.trialEnd);
+      const daysLeft = Math.ceil((trialEnd - now)/(1000*60*60*24));
+      _billing._daysLeft = daysLeft;
+      _billing._effectiveStatus = daysLeft > 0 ? 'trial' : 'expired';
+    } else {
+      _billing._effectiveStatus = _billing.status; // active, past_due, canceled, etc.
+    }
+
+    _updateBillingUI();
+  }catch(e){ console.warn('Billing check failed:', e); }
+}
+
+function _updateBillingUI(){
+  const b = _billing;
+  if(!b) return;
+  const sub = document.getElementById('topbarSub');
+  if(!sub) return;
+  const s = b._effectiveStatus;
+  if(s === 'trial'){
+    const d = b._daysLeft;
+    sub.textContent = 'Ridge Line · ' + _companyCode + (d <= 7 ? ' · Trial: ' + d + 'd left' : '');
+    sub.style.color = d <= 7 ? 'var(--accent)' : '';
+  } else if(s === 'active'){
+    sub.textContent = 'Ridge Line · ' + _companyCode;
+    sub.style.color = '';
+  } else if(s === 'past_due'){
+    sub.textContent = '⚠️ Payment past due — update billing';
+    sub.style.color = 'var(--accent)';
+  } else {
+    sub.textContent = '🔒 Subscription expired — ' + _companyCode;
+    sub.style.color = 'var(--red)';
+  }
+}
+
+// Returns true if the user can use gated features
+function _canUseGatedFeatures(){
+  if(!_billing) return true; // not loaded yet — allow optimistically
+  const s = _billing._effectiveStatus;
+  return s === 'trial' || s === 'active';
+}
+
+function _requireSubscription(action){
+  if(_canUseGatedFeatures()) return true;
+  const s = _billing._effectiveStatus;
+  const msg = s === 'past_due'
+    ? 'Your payment is past due. Update your billing to ' + action + '.'
+    : 'Your free trial has ended. Subscribe for $9.99/month to ' + action + '.';
+  if(confirm(msg + '\n\nOpen billing now?')){
+    openBillingPortal();
+  }
+  return false;
+}
+
+async function openSubscribeCheckout(){
+  try{
+    showToast('Opening checkout…','success');
+    const fn = firebase.functions().httpsCallable('createCheckoutSession');
+    const result = await fn({ companyCode: _companyCode });
+    window.location.href = result.data.url;
+  }catch(e){ showToast('Billing error: ' + e.message, 'error'); }
+}
+
+async function openBillingPortal(){
+  try{
+    showToast('Opening billing portal…','success');
+    const fn = firebase.functions().httpsCallable('createPortalSession');
+    const result = await fn({ companyCode: _companyCode });
+    window.location.href = result.data.url;
+  }catch(e){
+    // No portal yet (never subscribed) — go to checkout instead
+    openSubscribeCheckout();
+  }
+}
+
+function renderBillingCard(){
+  const el = document.getElementById('billingCardBody');
+  if(!el) return;
+  const b = _billing;
+  if(!b){ el.innerHTML='<div style="font-size:.85rem;color:var(--muted)">Loading…</div>'; return; }
+
+  const s = b._effectiveStatus;
+  const fmt = iso => iso ? new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+
+  let statusHTML, actionHTML;
+
+  if(s === 'trial'){
+    const d = b._daysLeft;
+    statusHTML = `<div style="display:inline-block;padding:4px 10px;border-radius:20px;background:rgba(240,101,10,.15);border:1px solid rgba(240,101,10,.4);color:var(--accent);font-size:.78rem;font-weight:700">FREE TRIAL — ${d} day${d===1?'':'s'} left</div>`;
+    actionHTML = `<button class="btn btn-accent" onclick="openSubscribeCheckout()">Subscribe — $9.99/mo</button>`;
+  } else if(s === 'active'){
+    statusHTML = `<div style="display:inline-block;padding:4px 10px;border-radius:20px;background:rgba(29,185,84,.15);border:1px solid rgba(29,185,84,.4);color:var(--green);font-size:.78rem;font-weight:700">✅ ACTIVE</div>`;
+    actionHTML = `<button class="btn btn-outline" onclick="openBillingPortal()">Manage Billing</button>`;
+  } else if(s === 'past_due'){
+    statusHTML = `<div style="display:inline-block;padding:4px 10px;border-radius:20px;background:rgba(240,101,10,.15);border:1px solid rgba(240,101,10,.4);color:var(--accent);font-size:.78rem;font-weight:700">⚠️ PAYMENT PAST DUE</div>`;
+    actionHTML = `<button class="btn btn-accent" onclick="openBillingPortal()">Update Payment Method</button>`;
+  } else {
+    statusHTML = `<div style="display:inline-block;padding:4px 10px;border-radius:20px;background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.4);color:var(--red);font-size:.78rem;font-weight:700">🔒 SUBSCRIPTION ENDED</div>`;
+    actionHTML = `<button class="btn btn-accent" onclick="openSubscribeCheckout()">Resubscribe — $9.99/mo</button>`;
+  }
+
+  el.innerHTML = `
+    <div style="margin-bottom:12px">${statusHTML}</div>
+    <div style="font-size:.82rem;color:var(--muted);margin-bottom:4px">Plan: <strong style="color:var(--text)">Ridgeline CRM — $9.99/month</strong></div>
+    ${b.currentPeriodEnd?`<div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Next billing: <strong style="color:var(--text)">${fmt(b.currentPeriodEnd)}</strong></div>`:''}
+    ${b.trialEnd&&s==='trial'?`<div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Trial ends: <strong style="color:var(--text)">${fmt(b.trialEnd)}</strong></div>`:''}
+    ${actionHTML}`;
 }
 function switchAuthTab(tab){
   const isLogin=tab==='login';
@@ -6284,6 +6401,7 @@ async function _evCall(action, params={}){
 }
 
 async function showEvOrderScreen(){
+  if(!_requireSubscription('order EagleView reports')) return;
   const j=CJ();
   if(!j){showToast('Open a job first','error');return;}
   const cp=_companyProfile||{};
