@@ -4631,6 +4631,8 @@ function initFirebase(){
             tryLoadCompany(5);
           } else {
             fbUser=null;jobs=[];_companyCode=null;
+            _companyProfile=null;_billing=null;
+            cam={};save(CAM_KEY,{});
             showScreen('auth');
             var ub=document.getElementById('userBadge');
             if(ub)ub.classList.add('hidden');
@@ -4672,6 +4674,9 @@ function crewsRef(){return companyRef().collection('crews');}
 function settingsRef(){return companyRef().collection('settings').doc('config');}
 
 function onUserReady(){
+  // Reset all company-specific state before loading fresh data
+  jobs=[];_companyProfile=null;_billing=null;
+  cam={};save(CAM_KEY,{});
   showScreen('jobs');
   var name=fbUser._cleanName||fbUser.displayName||fbUser.email.split('@')[0];
   // Strip company code suffix from display name if present
