@@ -1019,22 +1019,23 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
         <span style="font-family:var(--head);font-size:1.4rem;font-weight:700;color:var(--accent)" id="propTotalSqDisplay">— sq</span>
       </div>
 
+      <!-- Pricing mode toggle — always visible regardless of single/tiered mode -->
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <div id="priceModeSplit" onclick="setPricingMode('split')"
+          style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--accent);background:rgba(240,101,10,.1);cursor:pointer;text-align:center;font-size:.78rem;font-weight:700">
+          Split (Mat + Labor)
+        </div>
+        <div id="priceModeCombined" onclick="setPricingMode('combined')"
+          style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--border2);background:var(--bg);cursor:pointer;text-align:center;font-size:.78rem;font-weight:700">
+          Combined (Total/sq)
+        </div>
+      </div>
+
       <!-- SINGLE PRICE FIELDS -->
       <div id="propSingleFields">
         <div class="field">
           <label>Product / Description</label>
           <input class="inp" id="propProductDesc" type="text" placeholder="e.g. GAF Timberline HDZ – Charcoal"/>
-        </div>
-        <!-- Pricing mode toggle -->
-        <div style="display:flex;gap:6px;margin-bottom:12px">
-          <div id="priceModeSplit" onclick="setPricingMode('split')"
-            style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--accent);background:rgba(240,101,10,.1);cursor:pointer;text-align:center;font-size:.78rem;font-weight:700">
-            Split (Mat + Labor)
-          </div>
-          <div id="priceModeCombined" onclick="setPricingMode('combined')"
-            style="flex:1;padding:9px;border-radius:8px;border:2px solid var(--border2);background:var(--bg);cursor:pointer;text-align:center;font-size:.78rem;font-weight:700">
-            Combined (Total/sq)
-          </div>
         </div>
         <!-- Split mode fields -->
         <div id="priceSplitFields">
@@ -1111,11 +1112,15 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
           </div>
           <div style="padding:10px 12px">
             <input class="inp" id="propTier_good_productDesc" type="text" placeholder="Product description" style="font-size:.85rem;margin-bottom:8px"/>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div id="propTierSplit_good" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
               <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Mat $/sq</div>
                 <input class="inp" id="propTier_good_mat" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
               <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Labor $/sq</div>
                 <input class="inp" id="propTier_good_lab" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+            </div>
+            <div id="propTierCombined_good" style="display:none;margin-bottom:8px">
+              <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Total $/sq</div>
+              <input class="inp" id="propTier_good_total" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem;width:100%"/>
             </div>
             <div style="display:flex;align-items:center;gap:6px">
               <span style="color:var(--muted);font-size:.78rem">+ $</span>
@@ -1157,11 +1162,15 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
           </div>
           <div style="padding:10px 12px">
             <input class="inp" id="propTier_better_productDesc" type="text" placeholder="Product description" style="font-size:.85rem;margin-bottom:8px"/>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div id="propTierSplit_better" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
               <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Mat $/sq</div>
                 <input class="inp" id="propTier_better_mat" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
               <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Labor $/sq</div>
                 <input class="inp" id="propTier_better_lab" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+            </div>
+            <div id="propTierCombined_better" style="display:none;margin-bottom:8px">
+              <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Total $/sq</div>
+              <input class="inp" id="propTier_better_total" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem;width:100%"/>
             </div>
             <div style="display:flex;align-items:center;gap:6px">
               <span style="color:var(--muted);font-size:.78rem">+ $</span>
@@ -1200,11 +1209,15 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
           </div>
           <div style="padding:10px 12px">
             <input class="inp" id="propTier_best_productDesc" type="text" placeholder="Product description" style="font-size:.85rem;margin-bottom:8px"/>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div id="propTierSplit_best" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
               <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Mat $/sq</div>
                 <input class="inp" id="propTier_best_mat" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
               <div><div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Labor $/sq</div>
                 <input class="inp" id="propTier_best_lab" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem"/></div>
+            </div>
+            <div id="propTierCombined_best" style="display:none;margin-bottom:8px">
+              <div style="font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;text-transform:uppercase">Total $/sq</div>
+              <input class="inp" id="propTier_best_total" type="number" min="0" step="0.01" placeholder="0.00" oninput="updatePropTotals()" style="padding:9px 10px;font-size:.9rem;width:100%"/>
             </div>
             <div style="display:flex;align-items:center;gap:6px">
               <span style="color:var(--muted);font-size:.78rem">+ $</span>
@@ -2768,11 +2781,13 @@ function openProposalSetup(){
     setPricingMode(existing.pricingMode||'split');
   } else {
     const tiers=existing.tiers||{};
+    setPricingMode(existing.pricingMode||'split');
     ['good','better','best'].forEach(level=>{
       const tier=tiers[level]||{};
       document.getElementById('propTier_'+level+'_productDesc').value=tier.productDesc!==undefined?tier.productDesc:(level==='better'?defaultDesc:'');
       document.getElementById('propTier_'+level+'_mat').value=tier.materialPerSq!==undefined?tier.materialPerSq:(level==='better'?defaultMat:'');
       document.getElementById('propTier_'+level+'_lab').value=tier.laborPerSq!==undefined?tier.laborPerSq:(level==='better'?defaultLab:'');
+      document.getElementById('propTier_'+level+'_total').value=tier.totalPerSq||'';
       document.getElementById('propTier_'+level+'_add').value=tier.additionalCharges||'';
       document.getElementById('propTier_'+level+'_scope').value=tier.scopeNotes||'';
       document.getElementById('propTier_'+level+'_palette').value=tier.colorPalette||'none';
@@ -2798,6 +2813,13 @@ function setPricingMode(mode){
   document.getElementById('priceModeSplit').style.background=isCombined?'var(--bg)':'rgba(240,101,10,.1)';
   document.getElementById('priceModeCombined').style.borderColor=isCombined?'var(--accent)':'var(--border2)';
   document.getElementById('priceModeCombined').style.background=isCombined?'rgba(240,101,10,.1)':'var(--bg)';
+  // Toggle split/combined fields in each tier
+  ['good','better','best'].forEach(function(level){
+    var sp=document.getElementById('propTierSplit_'+level);
+    var co=document.getElementById('propTierCombined_'+level);
+    if(sp)sp.style.display=isCombined?'none':'grid';
+    if(co)co.style.display=isCombined?'block':'none';
+  });
   updatePropTotals();
 }
 function updatePropTotals(){
@@ -2819,11 +2841,17 @@ function updatePropTotals(){
     document.getElementById('propGrandTotalDisplay').textContent=fmt(total);
   } else {
     ['good','better','best'].forEach(level=>{
-      const mat=+document.getElementById('propTier_'+level+'_mat').value||0;
-      const lab=+document.getElementById('propTier_'+level+'_lab').value||0;
+      let perSq=0;
+      if(_pricingMode==='combined'){
+        perSq=+document.getElementById('propTier_'+level+'_total').value||0;
+      } else {
+        const mat=+document.getElementById('propTier_'+level+'_mat').value||0;
+        const lab=+document.getElementById('propTier_'+level+'_lab').value||0;
+        perSq=mat+lab;
+      }
       const add=+document.getElementById('propTier_'+level+'_add').value||0;
-      const total=mat*sq+lab*sq+add;
-      document.getElementById('propTierTotal_'+level).textContent=(mat||lab||add)?fmt(total):'—';
+      const total=perSq*sq+add;
+      document.getElementById('propTierTotal_'+level).textContent=(perSq||add)?fmt(total):'—';
     });
   }
 }
@@ -3379,16 +3407,19 @@ function saveProposalSetup(){
     ['good','better','best'].forEach(level=>{
       const mat=+document.getElementById('propTier_'+level+'_mat').value||0;
       const lab=+document.getElementById('propTier_'+level+'_lab').value||0;
+      const totalPerSq=+document.getElementById('propTier_'+level+'_total').value||0;
       const add=+document.getElementById('propTier_'+level+'_add').value||0;
+      const perSq=_pricingMode==='combined'?totalPerSq:(mat+lab);
       tiers[level]={
         productDesc:document.getElementById('propTier_'+level+'_productDesc').value.trim(),
-        materialPerSq:mat,laborPerSq:lab,
+        materialPerSq:mat,laborPerSq:lab,totalPerSq,
         additionalCharges:add,
         scopeNotes:document.getElementById('propTier_'+level+'_scope').value.trim(),
         colorPalette:document.getElementById('propTier_'+level+'_palette').value||'none',
-        grandTotal:rnd(mat*sq+lab*sq+add)
+        grandTotal:rnd(perSq*sq+add)
       };
     });
+    proposal.pricingMode=_pricingMode;
     proposal.tiers=tiers;
   }
   j.proposal=proposal;
