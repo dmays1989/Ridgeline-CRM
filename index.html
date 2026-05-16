@@ -3961,7 +3961,11 @@ async function loadSharedCamToken(){
     if(doc.exists&&doc.data().camToken){
       cam.token=doc.data().camToken;
       save(CAM_KEY,cam);
+    }else{
+      // No token for this company — clear any residual token from a previous session
+      cam={};save(CAM_KEY,{});
     }
+    renderCamStatus();
   }catch(e){console.error('Cam token load:',e);}
 }
 function exportJobs(){
