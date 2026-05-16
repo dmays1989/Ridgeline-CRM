@@ -41,7 +41,7 @@ async function getEvToken(clientId, clientSecret) {
 }
 
 // ── Callable: evProxy ────────────────────────────────────────────────────────
-// EV credentials are stored per-company in settings/companyProfile (evClientId / evClientSecret)
+// EV credentials are stored in ridgelineConfig/eagleview (platform-level, not per-company)
 exports.evProxy = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
@@ -52,23 +52,26 @@ exports.evProxy = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('invalid-argument', 'companyCode required');
   }
 
-  const profileSnap = await admin.firestore()
-    .collection('companies').doc(companyCode)
-    .collection('settings').doc('companyProfile')
+  // Load Ridgeline's master EV credentials — not tied to any company
+  const evConfigSnap = await admin.firestore()
+    .collection('ridgelineConfig').doc('eagleview')
     .get();
 
-  if (!profileSnap.exists) {
-    throw new functions.https.HttpsError('not-found', 'Company profile not found');
+  if (!evConfigSnap.exists) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'EagleView not configured — contact Ridgeline support'
+    );
   }
 
-  const profile      = profileSnap.data();
-  const clientId     = profile.evClientId;
-  const clientSecret = profile.evClientSecret;
+  const evConfig     = evConfigSnap.data();
+  const clientId     = evConfig.clientId;
+  const clientSecret = evConfig.clientSecret;
 
   if (!clientId || !clientSecret) {
     throw new functions.https.HttpsError(
       'failed-precondition',
-      'EagleView credentials not configured — add them in Settings → Company Profile'
+      'EagleView credentials incomplete — contact Ridgeline support'
     );
   }
 

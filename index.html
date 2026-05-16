@@ -759,22 +759,6 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       </div>
     </div>
 
-    <!-- EagleView API -->
-    <div class="card">
-      <div class="card-header"><h3>🦅 EagleView Measurements</h3></div>
-      <div class="card-body">
-        <div style="font-size:.82rem;color:var(--muted);margin-bottom:12px;line-height:1.5">EagleView credentials for ordering aerial roof measurements. Find these at <a href="https://developer.eagleview.com" target="_blank" style="color:var(--blue)">developer.eagleview.com</a> under My Apps.</div>
-        <div class="field"><label>Client ID</label>
-          <input class="inp" id="evClientId" type="text" placeholder="Client ID" style="font-family:var(--mono);font-size:.82rem"/>
-        </div>
-        <div class="field" style="margin-bottom:0"><label>Client Secret</label>
-          <div style="position:relative">
-            <input class="inp" id="evClientSecret" type="password" placeholder="Client Secret" style="font-family:var(--mono);font-size:.82rem;padding-right:48px"/>
-            <button onclick="var f=document.getElementById('evClientSecret');f.type=f.type==='password'?'text':'password'" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:4px">Show</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Preview -->
     <div class="card" id="cpPreviewCard">
@@ -5794,8 +5778,6 @@ function showCompanyProfile(){
       document.getElementById('brandColor').value = cp.brandColor;
       document.getElementById('brandColorLabel').textContent = cp.brandColor;
     }
-    document.getElementById('evClientId').value = cp.evClientId||'';
-    document.getElementById('evClientSecret').value = cp.evClientSecret||'';
     if(cp.laborMode) setLaborMode(cp.laborMode);
     if(cp.logo){
       _cpLogoBase64 = cp.logo;
@@ -5892,8 +5874,6 @@ async function saveCompanyProfile(){
     boilerplate: document.getElementById('cpBoilerplate').value.trim(),
     brandColor: document.getElementById('brandColor').value,
     logo: _cpLogoBase64||'',
-    evClientId: document.getElementById('evClientId').value.trim(),
-    evClientSecret: document.getElementById('evClientSecret').value.trim(),
     updatedAt: new Date().toISOString()
   };
   try{
@@ -6413,11 +6393,6 @@ async function showEvOrderScreen(){
   if(!_requireSubscription('order EagleView reports')) return;
   const j=CJ();
   if(!j){showToast('Open a job first','error');return;}
-  const cp=_companyProfile||{};
-  if(!cp.evClientId||!cp.evClientSecret){
-    showToast('Add EagleView credentials in Settings → Company Profile','error');
-    showScreen('settings');renderSettings();return;
-  }
   showScreen('ev-order');
   document.getElementById('evOrderJobName').textContent=j.name||'Job';
   renderEvOrderScreen();
