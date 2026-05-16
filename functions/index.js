@@ -10,7 +10,7 @@ function getStripe(){
 }
 
 const EV_TOKEN_URL    = 'https://apicenter.eagleview.com/oauth2/v1/token';
-const EV_API_BASE     = 'https://sandbox.apicenter.eagleview.com';
+const EV_API_BASE     = 'https://apicenter.eagleview.com';
 const STRIPE_PRICE_ID = 'price_1TS72mIC3L4eL1eQQ6WlyMkv';
 const APP_URL         = 'https://dmays1989.github.io/Ridgeline-CRM';
 
