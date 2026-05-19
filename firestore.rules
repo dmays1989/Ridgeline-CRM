@@ -1,0 +1,121 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // Is the requesting user a member of this company?
+    function isMember(companyCode) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyCode)/users/$(request.auth.uid));
+    }
+
+    // Is the requesting user an admin of this company?
+    function isAdmin(companyCode) {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/companies/$(companyCode)/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── Companies ─────────────────────────────────────────────────────────────
+
+    match /companies/{companyCode} {
+
+      // Members can read their own company doc
+      allow read: if isMember(companyCode);
+
+      // Any authenticated user can create a new company (sign-up bootstrap)
+      allow create: if request.auth != null;
+
+      // Only admins can update the company doc; nobody deletes via client
+      allow update: if isAdmin(companyCode);
+      allow delete: if false;
+
+      // ── Users subcollection ─────────────────────────────────────────────
+      // Needs special bootstrap rule — user can't be a member yet when they
+      // create their own user record during sign-up
+
+      match /users/{userId} {
+        // Members can read the full user list (needed for team screen)
+        allow read: if isMember(companyCode);
+
+        // Any authenticated user can create their OWN user record (bootstrap)
+        allow create: if request.auth != null && request.auth.uid == userId;
+
+        // Admins can update any user; users can update their own profile
+        allow update: if isAdmin(companyCode) ||
+          (isMember(companyCode) && request.auth.uid == userId);
+
+        allow delete: if isAdmin(companyCode);
+
+        // Notifications nested under each user
+        match /notifications/{notifId} {
+          allow read, write: if isMember(companyCode);
+        }
+      }
+
+      // ── All other subcollections — members only ─────────────────────────
+      // Covers: jobs, schedules, crews, invites, settings (and any future ones)
+
+      match /{subcollection}/{docId} {
+        allow read, write: if isMember(companyCode);
+      }
+
+      // Nested documents inside subcollections (e.g. settings sub-docs)
+      match /{subcollection}/{docId}/{rest=**} {
+        allow read, write: if isMember(companyCode);
+      }
+    }
+
+    // ── Shared Proposals ─────────────────────────────────────────────────────
+    // Customers access these unauthenticated via a unique random link.
+    // Security is by obscurity — the proposal ID is a hard-to-guess UUID.
+
+    match /sharedProposals/{proposalId} {
+      // Anyone can read (customer link viewing)
+      allow read: if true;
+
+      // Only authenticated members of the owning company can create proposals
+      allow create: if request.auth != null &&
+        isMember(request.resource.data.companyCode);
+
+      // Customers can update status fields (viewed, signed) unauthenticated.
+      // Authenticated members of the owning company can update anything.
+      allow update: if
+        // Unauthenticated customer updating their proposal (viewed/signed status)
+        request.auth == null ||
+        // Authenticated company member updating
+        isMember(resource.data.companyCode);
+
+      allow delete: if request.auth != null &&
+        isMember(resource.data.companyCode);
+
+      // Signature subcollection — written by customer during signing (unauthenticated)
+      match /sig/{sigId} {
+        allow read, write: if true;
+      }
+    }
+
+    // ── User Index ────────────────────────────────────────────────────────────
+    // Maps Firebase UID → companyCode. Users can only touch their own entry.
+
+    match /userIndex/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── Stripe Customer Lookup ────────────────────────────────────────────────
+    // Written and read only by Cloud Functions (admin SDK bypasses rules).
+    // Deny all direct client access.
+
+    match /stripeCustomers/{customerId} {
+      allow read, write: if false;
+    }
+
+    // ── Platform Config ───────────────────────────────────────────────────────
+    // Ridgeline's EagleView credentials etc. Functions-only via admin SDK.
+
+    match /ridgelineConfig/{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
