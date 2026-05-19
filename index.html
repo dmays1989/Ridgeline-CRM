@@ -206,6 +206,69 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
   </div>
 </div>
 
+<div class="screen hidden" id="screen-welcome">
+  <div class="scroll-body" style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:32px 20px 40px;min-height:100vh;background:var(--bg)">
+
+    <!-- Logo / brand -->
+    <div style="margin-bottom:8px;margin-top:12px">
+      <div style="font-family:var(--head);font-size:2rem;font-weight:900;letter-spacing:2px;color:var(--accent)">RIDGELINE</div>
+      <div style="font-size:.7rem;letter-spacing:3px;color:var(--muted);text-align:center;text-transform:uppercase">CRM for Roofing Contractors</div>
+    </div>
+
+    <div style="width:48px;height:3px;background:var(--accent);border-radius:2px;margin:16px 0 24px"></div>
+
+    <div style="font-family:var(--head);font-size:1.25rem;font-weight:700;text-align:center;margin-bottom:8px">Welcome! Let's get you set up.</div>
+    <div style="font-size:.85rem;color:var(--muted);text-align:center;line-height:1.6;margin-bottom:28px;max-width:320px">
+      A few quick steps and you'll be ready to manage jobs, build proposals, and close more roofs.
+    </div>
+
+    <!-- Step cards -->
+    <div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:12px;margin-bottom:32px">
+
+      <!-- Step 1 -->
+      <div style="background:var(--card);border:1.5px solid var(--border2);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:38px;height:38px;border-radius:50%;background:rgba(240,101,10,.15);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">🏢</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:2px">Company Profile</div>
+          <div style="font-size:.75rem;color:var(--muted);line-height:1.4">Add your logo, company name, and contact info. This appears on every proposal you send.</div>
+        </div>
+        <button class="btn btn-accent" onclick="completeOnboardingStep('profile')" style="width:auto;padding:8px 14px;font-size:.75rem;white-space:nowrap;flex-shrink:0">Set Up →</button>
+      </div>
+
+      <!-- Step 2 -->
+      <div style="background:var(--card);border:1.5px solid var(--border2);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:38px;height:38px;border-radius:50%;background:rgba(240,101,10,.15);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">💰</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:2px">Pricing Defaults</div>
+          <div style="font-size:.75rem;color:var(--muted);line-height:1.4">Set your default material and labor rates so proposals auto-fill with your numbers.</div>
+        </div>
+        <button class="btn btn-accent" onclick="completeOnboardingStep('pricing')" style="width:auto;padding:8px 14px;font-size:.75rem;white-space:nowrap;flex-shrink:0">Set Up →</button>
+      </div>
+
+      <!-- Step 3 -->
+      <div style="background:var(--card);border:1.5px solid var(--border2);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:38px;height:38px;border-radius:50%;background:rgba(240,101,10,.15);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">📋</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:.9rem;margin-bottom:2px">Create Your First Job</div>
+          <div style="font-size:.75rem;color:var(--muted);line-height:1.4">Add a customer, track their job through the pipeline, and build a proposal in minutes.</div>
+        </div>
+        <button class="btn btn-accent" onclick="completeOnboardingStep('job')" style="width:auto;padding:8px 14px;font-size:.75rem;white-space:nowrap;flex-shrink:0">Add Job →</button>
+      </div>
+
+    </div>
+
+    <!-- Trial badge -->
+    <div style="background:rgba(240,101,10,.1);border:1px solid rgba(240,101,10,.3);border-radius:20px;padding:6px 16px;font-size:.75rem;color:var(--accent);font-weight:700;margin-bottom:24px;letter-spacing:.5px">
+      🎉 30-DAY FREE TRIAL — NO CARD REQUIRED
+    </div>
+
+    <!-- Skip -->
+    <button onclick="dismissOnboarding()" style="background:none;border:none;color:var(--muted);font-size:.82rem;cursor:pointer;text-decoration:underline;padding:8px">
+      Skip setup, take me to my jobs →
+    </button>
+  </div>
+</div>
+
 <div class="screen hidden" id="screen-jobs">
   <div class="topbar">
     <div style="flex:1">
@@ -415,7 +478,7 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
         <div style="font-size:.85rem;color:var(--muted)">Loading billing status…</div>
       </div>
     </div>
-    <div class="card"><div class="card-header"><h3>📐 Panel & Screw Defaults</h3></div><div class="card-body">
+    <div class="card" id="pricingDefaultsCard"><div class="card-header"><h3>📐 Panel & Screw Defaults</h3></div><div class="card-body">
       <div style="background:rgba(240,101,10,.08);border:1px solid rgba(240,101,10,.25);border-radius:7px;padding:10px 12px;margin-bottom:12px;font-size:.82rem;color:var(--muted)">
         Panel width is fixed at <strong style="color:var(--accent)">3 ft</strong> — SF = panels × length × 3
       </div>
@@ -472,7 +535,7 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       <div id="settingsCloudStatus" style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Jobs saved to cloud.</div>
       <button class="btn btn-outline" onclick="exportJobs()">📤 Export All Jobs (JSON)</button>
     </div></div>
-    <div class="card"><div class="card-header"><h3>🏢 Company Profile</h3></div><div class="card-body">
+    <div class="card" id="companyProfileCard"><div class="card-header"><h3>🏢 Company Profile</h3></div><div class="card-body">
       <div id="cpSettingsSummary" style="font-size:.85rem;color:var(--muted);margin-bottom:12px">Set up your company branding, contact info, and proposal defaults.</div>
       <button class="btn btn-accent" onclick="showCompanyProfile()">🏢 Edit Company Profile</button>
     </div></div>
@@ -4702,8 +4765,8 @@ function onUserReady(){
   if(name.indexOf('|')>-1)name=name.split('|')[0];
   document.getElementById('userBadgeName').textContent=name;
   document.getElementById('userBadge').classList.remove('hidden');
-  // Check trial status
-  checkTrialStatus();
+  // Check trial status then onboarding (onboarding reads billing doc so run after)
+  checkTrialStatus().then(function(){ checkOnboarding(); });
   loadJobsFromFirestore().then(function(){
     loadSharedCamToken();
     loadUserProfile();
@@ -4720,6 +4783,49 @@ function onUserReady(){
     // Check for day-before reminders
     setTimeout(checkDayBeforeReminders, 2000);
   });
+}
+
+// ── Onboarding ───────────────────────────────────────────────────────────────
+async function checkOnboarding(){
+  if(!fbDb||!_companyCode)return;
+  try{
+    const snap=await fbDb.collection('companies').doc(_companyCode)
+      .collection('settings').doc('billing').get();
+    if(snap.exists&&snap.data().onboardingComplete)return; // already done
+    showScreen('welcome');
+  }catch(e){console.warn('Onboarding check failed:',e);}
+}
+
+function completeOnboardingStep(step){
+  // Mark onboarding done in Firestore so it never shows again
+  dismissOnboarding();
+  if(step==='profile'){
+    showScreen('settings');renderSettings();
+    // Scroll to company profile card after short delay
+    setTimeout(function(){
+      var el=document.getElementById('companyProfileCard');
+      if(el)el.scrollIntoView({behavior:'smooth'});
+    },300);
+  } else if(step==='pricing'){
+    showScreen('settings');renderSettings();
+    setTimeout(function(){
+      var el=document.getElementById('pricingDefaultsCard');
+      if(el)el.scrollIntoView({behavior:'smooth'});
+    },300);
+  } else if(step==='job'){
+    showScreen('jobs');renderJobList();
+    setTimeout(createJob,200);
+  }
+}
+
+function dismissOnboarding(){
+  showScreen('jobs');renderJobList();
+  if(fbDb&&_companyCode){
+    fbDb.collection('companies').doc(_companyCode)
+      .collection('settings').doc('billing')
+      .set({onboardingComplete:true},{merge:true})
+      .catch(function(e){console.warn('onboarding flag:',e);});
+  }
 }
 
 // ── Billing state ────────────────────────────────────────────────────────────
