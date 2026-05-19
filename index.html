@@ -184,20 +184,94 @@ body.day #daylightBtn{background:#1a1a2e;color:#f0c030;border-color:#333;}
       <button class="auth-tab-btn" id="authTabRegister" onclick="switchAuthTab('register')">Create Account</button>
     </div>
     <div id="authError" class="auth-error"></div>
-    <div class="field"><label>Email</label>
-      <input class="inp" id="authEmail" type="email" placeholder="your@email.com" autocomplete="email"/>
+
+    <!-- ── SIGN IN FIELDS ── -->
+    <div id="authLoginFields">
+      <div class="field"><label>Email</label>
+        <input class="inp" id="authEmail" type="email" placeholder="your@email.com" autocomplete="email"/>
+      </div>
+      <div class="field"><label>Password</label>
+        <input class="inp" id="authPassword" type="password" placeholder="Password" autocomplete="current-password"/>
+      </div>
     </div>
-    <div class="field"><label>Password</label>
-      <input class="inp" id="authPassword" type="password" placeholder="Password" autocomplete="current-password"/>
+
+    <!-- ── REGISTER FIELDS ── -->
+    <div id="authRegisterFields" style="display:none">
+
+      <!-- Path chooser — shown first -->
+      <div id="authPathChooser">
+        <div style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:12px;font-weight:600">How are you joining?</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div onclick="setSignupPath('new')" id="pathNewCard"
+            style="border:2px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .15s">
+            <div style="font-size:1.5rem;flex-shrink:0">🏢</div>
+            <div>
+              <div style="font-weight:700;font-size:.9rem;margin-bottom:2px">Start a New Company</div>
+              <div style="font-size:.72rem;color:var(--muted);line-height:1.4">I'm signing up Ridgeline for my roofing business</div>
+            </div>
+          </div>
+          <div onclick="setSignupPath('join')" id="pathJoinCard"
+            style="border:2px solid var(--border2);border-radius:10px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all .15s">
+            <div style="font-size:1.5rem;flex-shrink:0">👥</div>
+            <div>
+              <div style="font-weight:700;font-size:.9rem;margin-bottom:2px">Join My Team</div>
+              <div style="font-size:.72rem;color:var(--muted);line-height:1.4">My boss already has an account and gave me a company code</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- New Company form -->
+      <div id="authNewCompanyForm" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer" onclick="resetSignupPath()">
+          <span style="font-size:.8rem;color:var(--accent)">← Back</span>
+        </div>
+        <div class="field"><label>Company Name</label>
+          <input class="inp" id="authCompanyName" type="text" placeholder="e.g. Smith Roofing LLC"
+            oninput="autoFillCompanyCode(this.value)"/>
+        </div>
+        <div class="field"><label>Company Code <span style="font-size:.68rem;color:var(--muted);font-weight:400">— auto-filled, can edit</span></label>
+          <input class="inp" id="authCode" type="text" placeholder="SMITHROOFING" autocomplete="off"
+            style="text-transform:uppercase;letter-spacing:2px;font-weight:700;font-size:.9rem"/>
+          <div style="font-size:.68rem;color:var(--muted);margin-top:4px">Your team uses this code to join. Keep it simple.</div>
+        </div>
+        <div class="field"><label>Your Name</label>
+          <input class="inp" id="authName" type="text" placeholder="First Last"/>
+        </div>
+        <div class="field"><label>Email</label>
+          <input class="inp" id="authEmailNew" type="email" placeholder="your@email.com" autocomplete="email"/>
+        </div>
+        <div class="field"><label>Password</label>
+          <input class="inp" id="authPasswordNew" type="password" placeholder="6+ characters" autocomplete="new-password"/>
+        </div>
+        <div style="background:rgba(29,185,84,.1);border:1px solid rgba(29,185,84,.3);border-radius:8px;padding:8px 12px;font-size:.72rem;color:var(--green);margin-bottom:12px;text-align:center;font-weight:600">
+          🎉 30-day free trial — no card required
+        </div>
+      </div>
+
+      <!-- Join Team form -->
+      <div id="authJoinTeamForm" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;cursor:pointer" onclick="resetSignupPath()">
+          <span style="font-size:.8rem;color:var(--accent)">← Back</span>
+        </div>
+        <div class="field"><label>Company Code</label>
+          <input class="inp" id="authJoinCode" type="text" placeholder="e.g. SMITHROOFING" autocomplete="off"
+            style="text-transform:uppercase;letter-spacing:2px;font-weight:700;font-size:.9rem"/>
+          <div style="font-size:.68rem;color:var(--muted);margin-top:4px">Ask your admin for this code.</div>
+        </div>
+        <div class="field"><label>Your Name</label>
+          <input class="inp" id="authJoinName" type="text" placeholder="First Last"/>
+        </div>
+        <div class="field"><label>Email</label>
+          <input class="inp" id="authEmailJoin" type="email" placeholder="your@email.com" autocomplete="email"/>
+        </div>
+        <div class="field"><label>Password</label>
+          <input class="inp" id="authPasswordJoin" type="password" placeholder="6+ characters" autocomplete="new-password"/>
+        </div>
+      </div>
+
     </div>
-    <div class="field hidden" id="authNameField"><label>Your Name</label>
-      <input class="inp" id="authName" type="text" placeholder="First Last"/>
-    </div>
-    <div class="field hidden" id="authCodeField">
-      <label>Company Code</label>
-      <input class="inp" id="authCode" type="text" placeholder="e.g. SMITHROOFING" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;font-weight:700"/>
-      <div style="font-size:.7rem;color:var(--muted);margin-top:5px;line-height:1.5">Create a new code to start your company, or enter an existing code to join your team.</div>
-    </div>
+
     <button class="btn btn-accent" id="authSubmitBtn" onclick="authSubmit()" style="width:100%;margin-top:8px">Sign In</button>
     <div id="authForgot" style="text-align:center;margin-top:12px">
       <span style="font-size:.78rem;color:var(--muted);cursor:pointer" onclick="authForgotPassword()">Forgot password?</span>
@@ -4958,15 +5032,47 @@ function renderBillingCard(){
     ${b.trialEnd&&s==='trial'?`<div style="font-size:.82rem;color:var(--muted);margin-bottom:12px">Trial ends: <strong style="color:var(--text)">${fmt(b.trialEnd)}</strong></div>`:''}
     ${actionHTML}`;
 }
+let _signupPath=''; // 'new' or 'join'
+
 function switchAuthTab(tab){
   const isLogin=tab==='login';
   document.getElementById('authTabLogin').classList.toggle('active',isLogin);
   document.getElementById('authTabRegister').classList.toggle('active',!isLogin);
-  document.getElementById('authSubmitBtn').textContent=isLogin?'Sign In':'Create Account';
-  document.getElementById('authNameField').classList.toggle('hidden',isLogin);
-  document.getElementById('authCodeField').classList.toggle('hidden',isLogin);
+  document.getElementById('authLoginFields').style.display=isLogin?'':'none';
+  document.getElementById('authRegisterFields').style.display=isLogin?'none':'';
+  document.getElementById('authSubmitBtn').style.display=isLogin?'':'none';
   document.getElementById('authForgot').style.display=isLogin?'block':'none';
   document.getElementById('authError').style.display='none';
+  if(!isLogin){ _signupPath=''; resetSignupPath(); }
+}
+
+function setSignupPath(path){
+  _signupPath=path;
+  document.getElementById('authPathChooser').style.display='none';
+  document.getElementById('authNewCompanyForm').style.display=path==='new'?'':'none';
+  document.getElementById('authJoinTeamForm').style.display=path==='join'?'':'none';
+  // Highlight chosen card
+  document.getElementById('pathNewCard').style.borderColor=path==='new'?'var(--accent)':'var(--border2)';
+  document.getElementById('pathJoinCard').style.borderColor=path==='join'?'var(--accent)':'var(--border2)';
+  // Show/update submit button
+  const btn=document.getElementById('authSubmitBtn');
+  btn.style.display='';
+  btn.textContent=path==='new'?'Start Free Trial →':'Join Team →';
+}
+
+function resetSignupPath(){
+  _signupPath='';
+  document.getElementById('authPathChooser').style.display='';
+  document.getElementById('authNewCompanyForm').style.display='none';
+  document.getElementById('authJoinTeamForm').style.display='none';
+  document.getElementById('authSubmitBtn').style.display='none';
+}
+
+function autoFillCompanyCode(name){
+  const code=name.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,20);
+  const el=document.getElementById('authCode');
+  if(el)el.value=code;
+}
 }
 
 function showAuthError(msg){
@@ -4975,73 +5081,89 @@ function showAuthError(msg){
 }
 
 async function authSubmit(){
-  const emailEl=document.getElementById('authEmail');
-  const passEl=document.getElementById('authPassword');
   const btn=document.getElementById('authSubmitBtn');
   const errEl=document.getElementById('authError');
-  if(!emailEl||!passEl||!btn)return;
+  if(!btn)return;
 
-  const email=emailEl.value.trim();
-  const pass=passEl.value;
   const isLogin=document.getElementById('authTabLogin').classList.contains('active');
+  errEl.style.display='none';
 
-  if(!email||!pass){
-    errEl.textContent='Please enter email and password';
-    errEl.style.display='block';
+  // ── Sign In ──
+  if(isLogin){
+    const email=document.getElementById('authEmail').value.trim();
+    const pass=document.getElementById('authPassword').value;
+    if(!email||!pass){showAuthError('Please enter email and password');return;}
+    btn.textContent='Please wait…';btn.disabled=true;
+    try{
+      if(!fbAuth)await initFirebase();
+      await fbAuth.signInWithEmailAndPassword(email,pass);
+    }catch(e){
+      const msgs={'auth/user-not-found':'No account with that email','auth/wrong-password':'Incorrect password','auth/invalid-credential':'Incorrect email or password','auth/network-request-failed':'No internet connection','auth/too-many-requests':'Too many attempts, try later'};
+      showAuthError(msgs[e.code]||e.message||'Login failed');
+      btn.textContent='Sign In';btn.disabled=false;
+    }
     return;
   }
 
-  if(!isLogin){
-    const codeEl=document.getElementById('authCode');
-    const code=(codeEl?codeEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''):'');
-    if(!code){
-      errEl.textContent='Please enter a Company Code';
-      errEl.style.display='block';
-      return;
-    }
-    if(code.length<3){
-      errEl.textContent='Company code must be at least 3 characters';
-      errEl.style.display='block';
-      return;
-    }
-  }
-
-  btn.textContent='Please wait…';
-  btn.disabled=true;
-  errEl.style.display='none';
-
-  try{
-    if(!fbAuth){await initFirebase();}
-    if(isLogin){
-      await fbAuth.signInWithEmailAndPassword(email,pass);
-    } else {
-      const nameEl=document.getElementById('authName');
-      const codeEl=document.getElementById('authCode');
-      const name=(nameEl?nameEl.value.trim():'')||email.split('@')[0];
-      const code=codeEl?codeEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,''):'';
+  // ── New Company ──
+  if(_signupPath==='new'){
+    const companyName=document.getElementById('authCompanyName').value.trim();
+    const code=document.getElementById('authCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    const name=document.getElementById('authName').value.trim();
+    const email=document.getElementById('authEmailNew').value.trim();
+    const pass=document.getElementById('authPasswordNew').value;
+    if(!companyName){showAuthError('Please enter your company name');return;}
+    if(!code||code.length<3){showAuthError('Company code must be at least 3 characters');return;}
+    if(!name){showAuthError('Please enter your name');return;}
+    if(!email){showAuthError('Please enter your email');return;}
+    if(!pass||pass.length<6){showAuthError('Password must be at least 6 characters');return;}
+    btn.textContent='Creating account…';btn.disabled=true;
+    try{
+      if(!fbAuth)await initFirebase();
+      // Check if company code already taken
+      const existing=await fbDb.collection('companies').doc(code).get();
+      if(existing.exists){showAuthError('That company code is already taken — try adding your city or initials');btn.textContent='Start Free Trial →';btn.disabled=false;return;}
       const cred=await fbAuth.createUserWithEmailAndPassword(email,pass);
-      // setupCompany sets displayName to Name|CODE before onAuthStateChanged fires
-      await setupCompany(cred.user,code,name);
+      await setupCompany(cred.user,code,name,companyName);
+    }catch(e){
+      const msgs={'auth/email-already-in-use':'That email already has an account — sign in instead','auth/weak-password':'Password needs 6+ characters','auth/invalid-email':'Invalid email address','auth/network-request-failed':'No internet connection'};
+      showAuthError(msgs[e.code]||e.message||'Sign up failed');
+      btn.textContent='Start Free Trial →';btn.disabled=false;
     }
-  }catch(e){
-    const msgs={
-      'auth/user-not-found':'No account with that email',
-      'auth/wrong-password':'Incorrect password',
-      'auth/invalid-credential':'Incorrect email or password',
-      'auth/email-already-in-use':'Email already has an account',
-      'auth/weak-password':'Password needs 6+ characters',
-      'auth/invalid-email':'Invalid email address',
-      'auth/network-request-failed':'No internet connection',
-      'auth/too-many-requests':'Too many attempts, try later',
-    };
-    errEl.textContent=msgs[e.code]||e.message||'Login failed';
-    errEl.style.display='block';
-    btn.textContent=isLogin?'Sign In':'Create Account';
-    btn.disabled=false;
+    return;
   }
+
+  // ── Join Team ──
+  if(_signupPath==='join'){
+    const code=document.getElementById('authJoinCode').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    const name=document.getElementById('authJoinName').value.trim();
+    const email=document.getElementById('authEmailJoin').value.trim();
+    const pass=document.getElementById('authPasswordJoin').value;
+    if(!code){showAuthError('Please enter the company code your admin gave you');return;}
+    if(!name){showAuthError('Please enter your name');return;}
+    if(!email){showAuthError('Please enter your email');return;}
+    if(!pass||pass.length<6){showAuthError('Password must be at least 6 characters');return;}
+    btn.textContent='Joining…';btn.disabled=true;
+    try{
+      if(!fbAuth)await initFirebase();
+      // Verify company exists
+      const compSnap=await fbDb.collection('companies').doc(code).get();
+      if(!compSnap.exists){showAuthError('Company code not found — check with your admin');btn.textContent='Join Team →';btn.disabled=false;return;}
+      const cred=await fbAuth.createUserWithEmailAndPassword(email,pass);
+      await setupCompany(cred.user,code,name);
+    }catch(e){
+      const msgs={'auth/email-already-in-use':'That email already has an account — sign in instead','auth/weak-password':'Password needs 6+ characters','auth/invalid-email':'Invalid email address','auth/network-request-failed':'No internet connection'};
+      showAuthError(msgs[e.code]||e.message||'Sign up failed');
+      btn.textContent='Join Team →';btn.disabled=false;
+    }
+    return;
+  }
+
+  // No path chosen yet
+  showAuthError('Please choose how you are joining above');
 }
 
-async function setupCompany(user, code, name){
+async function setupCompany(user, code, name, companyName){
   if(!fbDb)fbDb=firebase.firestore();
   // Store company code in displayName as "Name|CODE" for reliable retrieval
   await user.updateProfile({displayName:name+'|'+code});
@@ -5057,7 +5179,7 @@ async function setupCompany(user, code, name){
         createdBy:user.uid,
         createdAt:new Date().toISOString(),
         trialStart:new Date().toISOString(),
-        name:code
+        name:companyName||code
       });
     }
     // Save user profile under company
