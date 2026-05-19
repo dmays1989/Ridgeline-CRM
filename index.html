@@ -4829,6 +4829,25 @@ function invitesRef(){return companyRef().collection('invites');}
 function crewsRef(){return companyRef().collection('crews');}
 function settingsRef(){return companyRef().collection('settings').doc('config');}
 
+// Ensure user doc exists in companies/{code}/users/{uid} — needed for Firestore rules.
+// Silent no-op if already present; heals legacy accounts that predate the rules.
+function ensureUserDoc(displayName){
+  if(!fbDb||!fbUser||!_companyCode)return;
+  var userDocRef=fbDb.collection('companies').doc(_companyCode).collection('users').doc(fbUser.uid);
+  userDocRef.get().then(function(snap){
+    if(snap.exists)return; // already there — nothing to do
+    // Create it now (will succeed because the rules allow create if auth.uid == userId)
+    return userDocRef.set({
+      uid:fbUser.uid,
+      email:fbUser.email||'',
+      name:displayName||fbUser.email.split('@')[0],
+      role:'crew', // safe default; admin can promote later
+      joinedAt:new Date().toISOString(),
+      companyCode:_companyCode
+    });
+  }).catch(function(e){console.warn('ensureUserDoc:',e);});
+}
+
 function onUserReady(){
   // Reset all company-specific state before loading fresh data
   jobs=[];_companyProfile=null;_billing=null;
@@ -4839,6 +4858,9 @@ function onUserReady(){
   if(name.indexOf('|')>-1)name=name.split('|')[0];
   document.getElementById('userBadgeName').textContent=name;
   document.getElementById('userBadge').classList.remove('hidden');
+  // Self-heal: ensure user doc exists in company subcollection so Firestore rules work
+  // (legacy users from before the rules were added may be missing this doc)
+  ensureUserDoc(name);
   // Check trial status then onboarding (onboarding reads billing doc so run after)
   checkTrialStatus().then(function(){ checkOnboarding(); });
   loadJobsFromFirestore().then(function(){
@@ -5072,7 +5094,6 @@ function autoFillCompanyCode(name){
   const code=name.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,20);
   const el=document.getElementById('authCode');
   if(el)el.value=code;
-}
 }
 
 function showAuthError(msg){

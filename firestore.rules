@@ -6,14 +6,19 @@ service cloud.firestore {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     // Is the requesting user a member of this company?
+    // Checks users subcollection first, falls back to userIndex for legacy accounts
     function isMember(companyCode) {
-      return request.auth != null &&
-        exists(/databases/$(database)/documents/companies/$(companyCode)/users/$(request.auth.uid));
+      return request.auth != null && (
+        exists(/databases/$(database)/documents/companies/$(companyCode)/users/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/userIndex/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/userIndex/$(request.auth.uid)).data.companyCode == companyCode)
+      );
     }
 
     // Is the requesting user an admin of this company?
     function isAdmin(companyCode) {
       return request.auth != null &&
+        exists(/databases/$(database)/documents/companies/$(companyCode)/users/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/companies/$(companyCode)/users/$(request.auth.uid)).data.role == 'admin';
     }
 
